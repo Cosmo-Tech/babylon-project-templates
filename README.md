@@ -1,11 +1,13 @@
 # Babylon deployment project templates
 
+This README is intended to be red step by step from top to bottom.
+
 ## Prequisities
 - Have a working Cosmo Tech platform
 
 ## How to
 
-### Fill Vault state from Terraform state
+### Fill Vault from Terraform state
 Quick guide of [backend-tf-state-to-vault](https://github.com/Cosmo-Tech/backend-tf-state-to-vault)
 
 #### Installation
@@ -48,7 +50,7 @@ pip install -r requirements.txt
 ```
 
 #### Usage
-##### Connection
+**Connection**
 > Fill all the values below according to your environment
 ```
 export BABYLON_ORG_NAME="vault_org_name"
@@ -59,39 +61,31 @@ export BABYLON_SERVICE="vault_url"
 babylon namespace use -c ns_context -p ns_platform_id -s state_id
 ```
 
-##### Create
-Organization
-```
+**Creation**
+```Organization
 babylon apply --organization --var-file variables.yaml project/
 ```
-Solution
-```
+```Solution
 babylon apply --solution --var-file variables.yaml project/
 ```
-Webapp
-```
+```Webapp
 babylon apply --webapp --var-file variables.yaml project/
 ```
-Workspace
-```
+```Workspace
 babylon apply --workspace --var-file variables.yaml project/
 ```
 
-##### Update
-Organization *(same command as creation)*
-```
+**Update**
+```Organization *(same command as creation)*
 babylon apply --organization --var-file variables.yaml project/
 ```
-Webapp *(same command as creation)*
-```
+```Solution *(same command as creation)*
 babylon apply --webapp --var-file variables.yaml project/
 ```
-Solution *(same command as creation)*
-```
+```Webapp *(same command as creation)*
 babylon apply --solution --var-file variables.yaml project/
 ```
-Workspace
-```
+```Workspace
 babylon apply --workspace --payload-only  --var-file variables.yaml project/
 ```
 
