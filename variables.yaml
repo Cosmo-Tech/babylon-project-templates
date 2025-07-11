@@ -1,0 +1,78 @@
+state_id: to_fill           # UUID to generate with command: uuidgen
+ns_context: to_fill         # Should be the name of your project
+ns_platform_id: to_fill     # Kubernetes namespace (will be used for Vault)
+ns_platform:
+  id: to_fill                                               # Kubernetes namespace (same value as ns_platform_id)
+  url: https://<api_domain>/<namespace_name>/<api_version>  # Example: https://cluster.api.example.com/namespace1/v3
+location: francecentral                                     # Edit according to your location
+
+# Organization
+organization_name: to_fill                                  # Should be the name of the project like "project1 organization"
+
+# Workspace
+workspace_name: to_fill                                     # Should be the name of the project like "project1 workspace"
+workspace_key: to_fill                                      # Unique key to define according to your naming convention, for example: project1workspace1
+workspace_description: to_fill                              # Quick sentence to explain the purpose of the workspace
+
+# PowerBI
+powerbi_workspace_name: to_fill                             # Should be the same value as workspace_name
+powerbi_group_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx      # Manually create a PowerBi group on Azure EntraID and copy/paste its Object ID here
+powerbi_permissions:
+  - identifier: 128dd327-7329-466f-80b2-e050bd02fa20        # UUID of the Static WebApp App registration allowed to display PowerBi dashboards from the PowerBi workspace
+    description: to_fill                                    # Name of the Static WebApp App registration allowed to display PowerBi dashboards from the PowerBi workspace
+    rights: Admin                                           # Level of permission for the group
+    type: App                                               # Type of static app registration is "App"
+  - identifier: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx        # UUID of group allowed to display PowerBi dashboards from the PowerBi workspace
+    description: to_fill                                    # Name of group allowed to display PowerBi dashboards from the PowerBi workspace
+    rights: Admin                                           # Level of permission for the group
+    type: Group                                             # Type of group is "Group"
+
+# Solution
+solution_name: to_fill                                      # Should be the name of the project like "project1 solution"
+solution_key: to_fill                                       # Unique key to define according to your naming convention, for example: project1solution1
+solution_description: to_fill                               # Quick sentence to explain the purpose of the solution
+simulator: to_fill                                          # To fill according to your simulator name
+simulator_version: to_fill                                  # To fill according to your simulator version
+azure_connector_id: to_create_manually_using_API            # This connector has to be created only one time and will be reused for all solutions
+resource_opening_time_function_key: ''
+transport_duration_function_key: ''
+scenario_download_function_key: ''
+
+# Application Web
+webapp_name: WebApp-project1                                               # Name of the Static Webapp on Azure, to define according your naming convention
+webapp_app_registration_display_name: App-project1                         # Name of the Webapp App registration on Azure, to define according your naming convention
+webapp_repository_url: https://github.com/organization/project1_webapp1    # /!\ Needs to be a Github repository /!\ will store the webapp source code that will be used to deploy the webapp on the static web app
+webapp_repository_name: project1_webapp1                                   # Name of the Github repository
+webapp_repository_branch: main                                             # Name of the Github repository branch
+webapp_organization_name: to_fill                                          # Name of the Github organization
+webapp_location: westeurope                                                # Edit according to your location
+webapp_custom_domain: https://project1-webapp1.<azure_dns_zone>/sign-in    # Custom domain to create on Azure, example: https://webapp1.app.example.com/sign-in
+documentation_link: provided_cosmotech_documentation_link                  # Documentation link according to your Cosmo Tech product
+
+# Security
+# You can have differents security list on all API objects (organization, solution and workspaces). 
+# The current list below will be used over all API objects.
+security:
+  default: none
+  accessControlList:
+  - id: admin.user@example.com
+    role: admin
+  - id: editor.user@example.com
+    role: editor
+  - id: viewer.user@example.com
+    role: viewer
+
+# ADX
+adx_permissions:
+  - type: App                                                      # Platform App registration type is "App"
+    description: Cosmo Tech Platform warpvy52ww For next-adx-dev   # Platform App registration name
+    principal_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx             # Platform App registration principal ID
+    role: Admin                                                    # Platform App registration role, must be "Admin"
+  - type: Group                                                    # Example of admin group on ADX 
+    description: to_fill                                           # Example of admin group on ADX 
+    principal_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx             # Example of admin group on ADX 
+    role: Admin                                                    # Example of admin group on ADX 
+  - type: User                                                     # Example of admin user on ADX 
+    description: username@example.com                              # Example of admin user on ADX 
+    principal_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx             # Example of admin user on ADX 
+    role: Admin                                                    # Example of admin user on ADX 

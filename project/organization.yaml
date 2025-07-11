@@ -1,0 +1,10 @@
+kind: Organization
+namespace:
+  state_id: "{{state_id}}"
+  context: "{{ns_context}}"
+  platform: {{ns_platform}}
+  remote: true
+spec:
+  payload:
+    name: "{{organization_name}}"
+    security: {{security}}

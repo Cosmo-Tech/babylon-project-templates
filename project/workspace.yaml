@@ -1,0 +1,866 @@
+kind: Workspace
+namespace:
+  state_id: "{{state_id}}"
+  context: "{{ns_context}}"
+  platform: {{ns_platform}}
+  remote: true
+metadata:
+  workspace_key: "{{workspace_key}}"
+  selector:
+    organization_id: "{{services['api.organization_id']}}"
+    solution_id: "{{services['api.solution_id']}}"
+spec:
+  sidecars:
+    azure:
+      powerbi:
+        workspace:
+          name: "{{powerbi_workspace_name}}"
+          reports:
+            - name: Optimization
+              type: dashboard
+              path: "powerbi/Optimization.pbix"
+              tag: optimization
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Input data
+              type: dashboard
+              path: "powerbi/Input data.pbix"
+              tag: inputdata
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Inventory KPI
+              type: dashboard
+              path: "powerbi/Inventory KPI.pbix"
+              tag: inventory
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Sensitivity Analysis
+              type: dashboard
+              path: "powerbi/Sensitivity Analysis.pbix"
+              tag: sensitivityanalysis
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Map
+              type: dashboard
+              path: "powerbi/Map.pbix"
+              tag: map
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario Scorecard - IO
+              type: dashboard
+              path: "powerbi/Scenario Scorecard - IO.pbix"
+              tag: scorecard
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario Scorecard - SnOP
+              type: dashboard
+              path: "powerbi/Scenario Scorecard - SnOP.pbix"
+              tag: scorecardsnop
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario Scorecard - Tariffs
+              type: dashboard
+              path: "powerbi/Scenario Scorecard - Tariffs.pbix"
+              tag: scorecardt
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: SnOP
+              type: dashboard
+              path: "powerbi/SnOP.pbix"
+              tag: snop
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Bottleneck Identification
+              type: dashboard
+              path: "powerbi/Bottleneck Identification.pbix"
+              tag: bottleneckidentification
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Uncertainty Analysis
+              type: dashboard
+              path: "powerbi/Uncertainty Analysis.pbix"
+              tag: uncertaintyanalysis
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: End-to-End Insights
+              type: dashboard
+              path: "powerbi/End-to-End Insights.pbix"
+              tag: endtoend
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: End-to-End Insights - Tariffs
+              type: dashboard
+              path: "powerbi/End-to-End Insights - Tariffs.pbix"
+              tag: endtoendt
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Manufacturing & Logistics metrics
+              type: dashboard
+              path: "powerbi/Manufacturing & Logistics metrics.pbix"
+              tag: manufacturingandlogistics
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View Sim - IO
+              type: scenario
+              path: "powerbi/Scenario View Sim - IO.pbix"
+              tag: scenarioview
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View Sim - Tariffs
+              type: scenario
+              path: "powerbi/Scenario View Sim - Tariffs.pbix"
+              tag: scenarioviewt
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View COP
+              type: scenario
+              path: "powerbi/Scenario View COP.pbix"
+              tag: scenarioviewopt
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View SA
+              type: scenario
+              path: "powerbi/Scenario View SA.pbix"
+              tag: scenarioviewsa
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View UA - IO
+              type: scenario
+              path: "powerbi/Scenario View UA - IO.pbix"
+              tag: scenarioviewua
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View UA - Tariffs
+              type: scenario
+              path: "powerbi/Scenario View UA - Tariffs.pbix"
+              tag: scenarioviewuat
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+            - name: Scenario View PbP
+              type: scenario
+              path: "powerbi/Scenario View PbP.pbix"
+              tag: scenarioviewpbp
+              parameters:
+                - id: ADX_Cluster
+                  value: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+                - id: ADX_Database
+                  value: "{{services['api.organization_id']}}-{{workspace_key}}"
+          permissions: {{powerbi_permissions}}
+      adx:
+        database:
+          create: true
+          uri: "https://{{services['adx.cluster_name']}}.{{location}}.kusto.windows.net"
+          retention: 365
+          permissions: {{adx_permissions}}
+          scripts:
+          - id: adxplatform
+            name: 00-Initialization.kql
+            path: "adx/scripts"
+          - id: adxsupplychain
+            name: 01-SupplyChain.kql
+            path: "adx/scripts"
+      eventhub:
+        create: true
+        consumers:
+        - displayName: adx
+          entity: ProbesMeasures
+        - displayName: adx
+          entity: ScenarioMetadata
+        - displayName: adx
+          entity: ScenarioRun
+        - displayName: adx
+          entity: ScenarioRunMetadata
+        connectors:
+          - table_name: ProbesMeasures
+            consumer_group: adx
+            connection_name: ProbesMeasures
+            database_target: "{{services['api.organization_id']}}-{{workspace_key}}"
+            format: JSON
+            compression: Gzip
+            mapping: ProbesMeasuresMapping
+          - table_name: ScenarioMetadata
+            consumer_group: adx
+            connection_name: ScenarioMetadata
+            database_target: "{{services['api.organization_id']}}-{{workspace_key}}"
+            format: CSV
+            compression: None
+            mapping: ScenarioMetadataMapping
+          - table_name: SimulationTotalFacts
+            consumer_group: adx
+            connection_name: ScenarioRun
+            database_target: "{{services['api.organization_id']}}-{{workspace_key}}"
+            format: JSON
+            compression: None
+            mapping: SimulationTotalFactsMapping
+          - table_name: ScenarioRunMetadata
+            consumer_group: adx
+            connection_name: ScenarioRunMetadata
+            database_target: "{{services['api.organization_id']}}-{{workspace_key}}"
+            format: CSV
+            compression: None
+            mapping: ScenarioRunMetadataMapping
+  payload:
+    key: "{{workspace_key}}"
+    name: "{{workspace_name}}"
+    description: "{{workspace_description}}"
+    solution:
+      solutionId: "{{services['api.solution_id']}}"
+      runTemplateFilter:
+        - Lever
+        - LeverWithTables
+        - MILPOptimization
+        - UncertaintyAnalysis
+        - SensitivityAnalysis
+        - StochasticOptimization
+        - CustomOptimization
+        - Split
+      defaultRunTemplateDataset: null
+    useDedicatedEventHubNamespace: true
+    sendScenarioMetadataToEventHub: true
+    sendScenarioRunToEventHub: true
+    datasetCopy: false
+    webApp:
+      url: "https://{{services['webapp.static_domain']}}"
+      options:
+        disableOutOfSyncWarningBanner: true
+        charts:
+          workspaceId: "{{services['powerbi.workspace.id']}}"
+          logInWithUserCredentials: false
+          scenarioViewIframeDisplayRatio: 3.2
+          dashboardsViewIframeDisplayRatio: 1.8
+          dashboardsView:
+            - title:
+                en: Scenario scorecard
+                fr: Tableau de bord
+              reportTag: scorecard
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: End-to-End Insights
+                fr: Aperçu général
+              reportTag: endtoend
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: true
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+                - table: GetScenariosMulti
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Inventory KPI
+                fr: Indicateurs de stock
+              reportTag: inventory
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: true
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+                - table: GetScenariosMulti
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Manufacturing & Logistics metrics
+                fr: Production & Logistique
+              reportTag: manufacturingandlogistics
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: true
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+                - table: GetScenariosMulti
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Map
+                fr: Carte
+              reportTag: map
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Uncertainty analysis
+                fr: Analyse d'incertitude
+              reportTag: uncertaintyanalysis
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenariosWithUncertaintyAnalysisMulti
+                  column: ScenarioId
+                  values: visibleScenariosIds
+                - table: GetScenariosWithUncertaintyAnalysisSingle
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Sensitivity Analysis
+                fr: Analyse de sensibilité
+              reportTag: sensitivityanalysis
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: true
+              dynamicFilters:
+                - table: GetScenariosWithSensitivityAnalysis
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: S&OP
+                fr: S&OP
+              reportTag: snop
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Bottleneck identification
+                fr: Identification des goulots d'étranglement
+              reportTag: bottleneckidentification
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Input data
+                fr: Données d'entrée
+              reportTag: inputdata
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            - title:
+                en: Optimization
+                fr: Optimisation
+              reportTag: optimization
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: ScenarioId
+                  values: visibleScenariosIds
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+          scenarioView:
+            CustomOptimization:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioviewopt
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            Lever:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioview
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            LeverWithTables:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioview
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            MILPOptimization:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioview
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            SensitivityAnalysis:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioviewsa
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            StochasticOptimization:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioviewopt
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            UncertaintyAnalysis:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioviewua
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+            Split:
+              title:
+                en: Scenario dashboard
+                fr: Rapport du scenario
+              reportTag: scenarioviewpbp
+              settings:
+                navContentPaneEnabled: false
+                panes:
+                  filters:
+                    expanded: false
+                    visible: false
+              dynamicFilters:
+                - table: GetScenarios
+                  column: LastSimulationRun
+                  values: lastRunId
+              pageName:
+                en: ReportSection
+                fr: ReportSection
+        menu:
+          documentationUrl: https://portal.cosmotech.com/resources/cosmo-tech-supply-chain-resources
+          supportUrl: https://support.cosmotech.com
+          organizationUrl: https://cosmotech.com
+        instanceView:
+          dataSource:
+            type: twingraph_dataset
+          dataContent:
+            compounds:
+              contains: {}
+            edges:
+              input: {}
+              output: {}
+              Transport:
+                attributesOrder:
+                  - id
+                  - src
+                  - dest
+                  - Duration
+                  - Mode
+                  - TransportUnitCosts
+                  - CustomFees
+                  - CO2UnitEmissions
+                  - InitialTransportedQuantities
+                  - InitialTransportedValues
+            nodes:
+              ProductionOperation:
+                attributesOrder:
+                  - id
+                  - PlantName
+                  - CycleTimes
+                  - OperatingPerformances
+                  - RejectRates
+                  - QuantitiesToProduce
+                  - ProductionUnitCosts
+                  - InvestmentCost
+                  - IsContractor
+                  - CO2UnitEmissions
+                style:
+                  background-color: "#005A31"
+                  shape: ellipse
+              ProductionResource:
+                attributesOrder:
+                  - id
+                  - PlantName
+                  - OpeningTimes
+                  - ProductionStep
+                  - ProductionPolicy
+                  - FixedProductionCosts
+                style:
+                  shape: rectangle
+                  background-color: "#466282"
+                  background-opacity: 0.2
+                  border-width: 0
+                  label: ""
+              Stock:
+                attributesOrder:
+                  - id
+                  - PartId
+                  - PlantName
+                  - IsInfinite
+                  - InitialStock
+                  - InitialValue
+                  - SafetyQuantities
+                  - StockPolicy
+                  - SourcingPolicy
+                  - DispatchPolicy
+                  - MaximalStock
+                  - MinimalStock
+                  - PurchasingUnitCosts
+                  - StorageUnitCosts
+                  - UnitIncomes
+                  - CO2UnitEmissions
+                  - Latitude
+                  - Longitude
+                  - Step
+                  - Demands
+                style:
+                  background-blacken: 0.1
+                  background-color: "#C13700"
+                  shape: polygon
+                  shape-polygon-points:
+                    - -1
+                    - -1
+                    - 1
+                    - -1
+                    - 0
+                    - 1
+        datasetManager:
+          graphIndicators:
+            - id: productionresource_count
+              name:
+                en: Number of production resources
+                fr: Nombre de ressources de production
+              queryId: ProductionResource_count
+            - id: productionoperation_count
+              name:
+                en: Number of production operations
+                fr: Nombre d'opérations de production
+              queryId: ProductionOperation_count
+            - id: stocks_count
+              name:
+                en: Number of stocks
+                fr: Nombre de stocks
+              queryId: Stocks_count
+            - id: transports_count
+              name:
+                en: Number of transports
+                fr: Nombre de transports
+              queryId: Transports_count
+          categories:
+            - id: productionresource
+              name:
+                en: Production resource
+                fr: Ressource de production
+              type: entity
+              description:
+                en: A production resource is a supply chain model entity representing a resource capable to produce one or several part references. For example, it can be a machine, a person, a production line. A production resource can perform one or more production operations.
+                fr: Une ressource de production est une entité du modèle de chaîne logistique représentant une ressource capable de produire une ou plusieurs références de pièces. Il peut s'agir, par exemple, d'une machine, d'une personne ou d'une ligne de production. Une ressource de production peut effectuer une ou plusieurs opérations de production.
+              kpis:
+                - id: productionresource_count
+                  name:
+                    en: Total
+                    fr: Total
+              attributes:
+                - ProductionPolicy
+                - OpeningTimes
+            - id: productionoperation
+              name:
+                en: Production operation
+                fr: Opération de production
+              type: entity
+              description:
+                en: A production operation is a supply chain model entity representing the producing process of a part reference by a production resource. By attaching one or more input stocks to them, they can be used to create an output stock. They simulate the machines present in your factories.
+                fr: Une opération de production est une entité du modèle de chaîne logistique représentant le processus de production d'une référence de pièce par une ressource de production. En y attachant un ou plusieurs stock d’entrée elles permettent d’optenir un stock de sortie. Elles simulent les machines qui sont présentes dans vos usines.
+              kpis:
+                - id: productionoperation_count
+                  name:
+                    en: Total
+                    fr: Total
+              attributes:
+                - Duration
+                - OperatingPerformances
+                - CycleTimes
+                - ProductionUnitCosts
+                - CO2UnitEmissions
+            - id: stock
+              name:
+                en: Stock
+                fr: Stock
+              type: entity
+              description:
+                en: A stock is a supply chain model entity representing location of part between operations. It contains one and only one part reference. They represent the raw materials, intermediate or finished products that change throughout your supply chain, with quantities that vary, either decreasing or increasing.
+                fr: Un stock est une entité du modèle de chaîne logistique représentant l'emplacement d'une pièce entre les opérations. Il contient une et une seule référence de pièce. Ils représentent les matières premières, les produits intermédiaires ou finis qui évoluent tout au long de votre supply chain avec des quantités qui varient en diminuant ou augmentant.
+              kpis:
+                - id: stocks_count
+                  name:
+                    en: Total
+                    fr: Total
+                - id: value_sum_initialStock
+                  name:
+                    en: Initial quantity
+                    fr: Quantité initiale
+                  queryId: Sum_initialStock
+              attributes:
+                - InitialStock
+                - StockPolicies
+                - PurchasingUnitCosts
+                - CO2UnitEmissions
+                - UnitIncomes
+                - StorageUnitCosts
+            - id: transports
+              name:
+                en: Transports
+                fr: Transports
+              type: relationship
+              description:
+                en: A transport is a supply chain model entity representing the movement of a part between two stocks located in two different factories, with an associated transport time, costs and CO2 emissions.
+                fr: Un transport est une entité du modèle de chaîne d'approvisionnement représentant le mouvement d'une pièce entre deux stocks situés dans deux usines différentes, avec un temps de transport, des coûts et des émissions de CO2 associés.
+              kpis:
+                - id: transports_count
+                  name:
+                    en: Total
+                    fr: Total
+                  queryId: Transports
+              attributes:
+                - Duration
+                - TransportUnitCosts
+                - CO2UnitEmissions
+            - id: demands
+              name:
+                en: Demands
+                fr: Demandes
+              description:
+                en: Demands are the main event used to launch the supply chain model. These requests represent the quantities of each stock item expected by customers.
+                fr: Les demandes sont le principal événement qui permet de lancer le modèle supply chain. Ces demandes représentent les quantités de chaque stock attendues par les clients.
+              kpis:
+                - id: demands_count
+                  name:
+                    en: Number of stocks with demands
+                    fr: Nombre de stocks avec des demandes
+                  queryId: Demands_count
+            - id: forecasts
+              name:
+                en: Sales forecasts
+                fr: Prévisions de ventes
+              description:
+                en: Forecasts are events in the supply chain model. They are estimates of demand and are only used if we do not know the exact quantities ordered.
+                fr: Les prévisions sont des événements du modèle supply chain. Ce sont des estimations des demandes qui sont utilisées seulement si on ne connait pas précisément les quantités commandées.
+              kpis:
+                - id: salesforecasts_count
+                  name:
+                    en: Number of stocks with sales forecasts
+                    fr: Nombre de stocks avec des prévisions de ventes
+                  queryId: Salesforecasts_count
+          queries:
+            - id: ProductionResource_count
+              query: OPTIONAL MATCH (r:ProductionResource) RETURN COUNT(r) AS productionresource_count
+            - id: ProductionOperation_count
+              query: OPTIONAL MATCH (o:ProductionOperation) RETURN COUNT(o) AS productionoperation_count
+            - id: Stocks_count
+              query: OPTIONAL MATCH (s:Stock) RETURN count(DISTINCT s) AS stocks_count
+            - id: Sum_initialStock
+              query: OPTIONAL MATCH (s:Stock) WITH toInteger(s.InitialStock) AS initialStock RETURN sum(initialStock) AS value_sum_initialStock
+            - id: Transports_count
+              query: OPTIONAL MATCH (n)-[r]->() WHERE TYPE(r)='Transport' RETURN (count(distinct r)) AS transports_count
+            - id: Demands_count
+              query: OPTIONAL MATCH (s:Stock) WITH s.Demands AS demand RETURN count(demand) AS demands_count
+            - id: Salesforecasts_count
+              query: OPTIONAL MATCH (s:Stock) WITH s.SalesForecasts AS forecasts RETURN count(forecasts) AS salesforecasts_count
+    security: {{security}}

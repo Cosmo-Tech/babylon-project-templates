@@ -1,0 +1,1475 @@
+kind: Solution
+namespace:
+  state_id: "{{state_id}}"
+  context: "{{ns_context}}"
+  platform: {{ns_platform}}
+  remote: true
+metadata:
+  workspace_key: "{{workspace_key}}"
+  selector:
+    organization_id: "{{services['api.organization_id']}}"
+spec:
+  payload:
+    key: "{{solution_key}}"
+    name: "{{solution_name}}"
+    description: "{{solution_description}}"
+    repository: "{{simulator}}"
+    version: "{{simulator_version}}"
+    alwaysPull: true
+    sdkVersion: 11.2.0
+    tags:
+      - SupplyChain
+    parameters:
+      - id: ScenarioName
+        labels:
+          fr: Nom du scenario
+          en: Scenario Name
+        varType: string
+        options:
+          hidden: true
+      - id: start_date
+        labels:
+          fr: Date de début
+          en: Start date
+        varType: date
+        defaultValue: 2025-01-01T00:00:00.000Z
+      - id: end_date
+        labels:
+          fr: Date de fin
+          en: End date
+        varType: date
+        defaultValue: 2025-01-01T00:00:00.000Z
+        options:
+          validation: "> start_date"
+      - id: simulation_granularity
+        labels:
+          fr: Granularité temporelle
+          en: Time granularity
+        varType: enum
+        defaultValue: day
+        options:
+          enumValues:
+    #        - key: minute
+    #          value:
+    #            en: Minute
+    #            fr: Minute
+    #        - key: hour
+    #          value: hour
+    #            en: Hour
+    #            fr: Heure
+            - key: day
+              value:
+                en: Day
+                fr: Jour
+            - key: week
+              value:
+                en: Week
+                fr: Semaine
+            - key: month
+              value:
+                en: Month
+                fr: Mois
+            - key: quarter
+              value:
+                en: Quarter
+                fr: Trimestre
+            - key: year
+              value:
+                en: Year
+                fr: Année
+      - id: mass_lever_excel_file
+        labels:
+          fr: Télécharger les données d'entrée
+          en: Download input dataset
+        varType: "%DATASETID%"
+        options:
+          connectorId: "{{azure_connector_id}}"
+          defaultFileTypeFilter: .xlsx,.zip
+      - id: optimization_objective
+        labels:
+          fr: Objectif de l'optimisation
+          en: Optimization objective
+        varType: enum
+        defaultValue: ServiceLevelMaximization
+        options:
+          enumValues:
+            - key: ProfitMaximization
+              value:
+                en: Profit maximization
+                fr: Maximisation du profit
+            - key: ServiceLevelMaximization
+              value:
+                en: Service level maximization
+                fr: Maximisation du taux de service
+          tooltipText:
+            fr: Objectif poursuivi par l'optimisation automatique.
+            en: Objective pursued by the automatic optimization.
+      - id: manage_backlog_quantities
+        labels:
+          fr: Gestion des arriérés
+          en: Manage backlog quantities
+        varType: bool
+        defaultValue: false
+        options:
+          tooltipText:
+            fr: Activer la capacité de garder en mémoire les quantités non servies en totalité et à temps puis de les servir dès que possible.
+            en: Activate the ability to keep in memory the quantities not served in full on time and to serve them as soon as possible.
+      - id: empty_obsolete_stocks
+        labels:
+          fr: Vide les stocks obsoletes
+          en: Empty obsolete stocks
+        varType: bool
+        defaultValue: false
+        options:
+          tooltipText:
+            fr: "Si activé : le modèle supprimera automatiquement les stocks pendant la simulation lorsqu'il n'y aura plus de demande."
+            en: "If activated: model will automatically delete stocks during simulation when no further demand exists."
+      - id: actualize_shipments
+        labels:
+          fr: Actualisation des transports en cours
+          en: Ongoing transports update
+        varType: bool
+        defaultValue: false
+        options:
+          tooltipText:
+            fr: |-
+              Considérer les durées effectives des transports au lieu des durées théoriques pour les projections des niveaux de stock.
+              Utilisé uniquement par la politique de stock "Production sur prévision".
+            en: |-
+              Consider actual durations of transports instead of theoretical durations for stock levels projections.
+              Used only by the "Make to forecast" stock policy.
+      - id: batch_size
+        labels:
+          fr: Taille de lot
+          en: Batch size
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: |-
+              Multiple à observer en fin d'opération de production avant de pouvoir passer à l'opération suivante (la valeur par défaut est 0 ce qui signifie aucune contrainte de taille de lot).
+              S'appliquera à toutes les opérations de production.
+            en: |-
+              Multiple to be observed at the end of production operation before being able to move on to the next operation (default value is 0 which means no batch size constraint).
+              Will be applied to all production operations.
+      - id: financial_cost_of_stock
+        labels:
+          fr: Coût financier des stocks
+          en: Financial cost of stocks
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: Coût financier dû au cash immobilisé en stock (ratio entre 0 et 1 appliqué à la valeur de stock pour chaque pas de temps).
+            en: Cost of the financial asset due to inventory (ratio between 0 and 1 applied to inventory value for each time step).
+      - id: intermediary_stock_dispatch_policy
+        labels:
+          fr: Politique de distribution des stocks intermédiaires
+          en: Intermediary stock dispatch policy
+        varType: enum
+        defaultValue: DispatchAll
+        options:
+          enumValues:
+            - key: AllowRetention
+              value:
+                en: Can retain quantities
+                fr: Peut retenir des quantités
+              tooltipText:
+                en: For an optimization run type, it removes a constraint which forces having all intermediary stocks, with only transport operations downstream, empty at the end of each timestep. For a simulation run type, it enables to take into account demands on intermediary stocks in the stock dispatch policy, except for the "Standard" stock dispatch policy. (If there is no demand on intermediary stocks, then it will have no impact on the simulation.)
+                fr: Pour un scénario de type optimisation, cela supprime une contrainte qui oblige à avoir tous les stocks intermédiaires, avec uniquement des opérations de transport en aval, vides à la fin de chaque pas de temps. Pour un scénario de type simulation, cela permet de prendre en compte les demandes sur les stocks intermédiaires dans la politique de distribution des stocks, sauf pour la politique de distribution des stocks "Standard". (S'il n'y a pas de demande sur les stocks intermédiaires, alors cela n'aura aucun impact sur la simulation.)
+            - key: DispatchAll
+              value:
+                en: Dispatch all quantities downstream
+                fr: Distribue toutes les quantités vers l'aval
+              tooltipText:
+                en: Default behavior
+                fr: Comportement par défaut
+          tooltipText:
+            fr: Par défaut, à chaque pas de temps, les stocks intermédiaires répartissent leur quantité disponible vers les opérations en aval. Ce paramètre permet d'ajouter une part à cette répartition. Cette part correspond à une quantité que le stock peut réserver pour la retenir.
+            en: By default, at each time step, intermediate stocks dispatch their available quantity to downstream operations. This parameter is used to add a share to this dispatch. This part corresponds to a quantity that the stock can reserve to retain it.
+      - id: stock_policy
+        labels:
+          fr: Politique de stock
+          en: Stock policy
+        varType: enum
+        defaultValue: FromDataset
+        options:
+          enumValues:
+            - key: None
+              value:
+                en: None
+                fr: Aucune
+              tooltipText:
+                en: No order is emitted.
+                fr: Aucune commande n'est émise.
+            - key: OrderPointFixedQuantity
+              value:
+                en: Order point, fixed quantity
+                fr: Seuil de commande, quantité fixe
+              tooltipText:
+                en: At the end of a time step, an order is emitted if the stock level is less than or equal to the order point, the quantity ordered is fixed.
+                fr: A la fin d'un pas de temps, une commande est émise si le niveau de stock est inférieur ou égal au point de commande, la quantité commandée est fixe.
+            - key: OrderPointVariableQuantity
+              value:
+                en: Order point, variable quantity
+                fr: Seuil de commande, quantité variable
+              tooltipText:
+                en: At the end of a time step, an order is emitted if the stock level is less than or equal to the order point, the quantity ordered is equal to the order-up-to level minus the the stock level.
+                fr: A la fin d'un pas de temps, une commande est émise si le niveau de stock est inférieur ou égal au point de commande, la quantité commandée est égale au niveau de commande moins le niveau de stock.
+            - key: MakeToForecast
+              value:
+                en: Make to forecast
+                fr: Production sur prévision
+              tooltipText:
+                en: At the end of a time step, an order is emitted for each considered time step where the projected quantity in stock is strictly less than the safety quantity, the quantity ordered is equal to the difference.
+                fr: À la fin d'un pas de temps, une commande est émise pour chaque pas de temps où la projection du niveau de stock est strictement inférieure au niveau de sécurité, la quantité commandée est égale à la différence.
+            - key: MakeToOrder
+              value:
+                en: Make to order
+                fr: Production à la commande
+              tooltipText:
+                en: Stock policy initiating supply orders based on orders to be served. At the end of a time step, an order is emitted if the stock level is strictly less than the safety quantity plus the next time step demand and the backlogs. The quantity ordered is equal to the difference between the two.
+                fr: Politique de stock initiant des commandes d'approvisionnement en fonction des commandes à servir. A la fin d'un pas de temps, une commande est émise si le niveau de stock est strictement inférieur à la quantité de sécurité plus la demande du pas de temps suivant et les arriérés de demandes non servies. La quantité commandée est égale à la différence entre les deux.
+            - key: FromDataset
+              value:
+                en: Use dataset values
+                fr: Utiliser les valeurs du jeu de données
+              tooltipText:
+                en: Enables to use different stock policies (to be defined for each stock in the dataset).
+                fr: Permet d'utiliser différentes politiques de stock (à définir pour chaque stock dans le jeu de données).
+          tooltipText:
+            en: Set of rules, configurable or not, defining how the stock must be replenished (how often and in how much).
+            fr: Ensemble de règles, paramétrables ou non, définissant comment le stock doit être réapprovisionné (à quelle fréquence et en combien).
+      - id: sourcing_policy
+        labels:
+          fr: Politique d'approvisionnement
+          en: Sourcing policy
+        varType: enum
+        defaultValue: FromDataset
+        options:
+          enumValues:
+            - key: Equidistribution
+              value:
+                en: Equidistribution
+                fr: Equirépartition
+              tooltipText:
+                en: The quantity ordered from the stock is evenly distributed among all the directly upstream production operations, respecting the quantity which can be sent by the source. If a quantity to order remains, it is evenly distributed among all the directly upstream production operations and transports (note that transport operations will receive an order from downstream stock only if all competitive production operations have not enough capacity to handle all orders or if they have no competitive production operations).
+                fr: La quantité commandée à partir du stock est répartie uniformément entre toutes les opérations de production directement en amont, en respectant la quantité pouvant être envoyée par la source*. Si une quantité à commander reste, elle est répartie uniformément entre toutes les opérations de production directement en amont et les transports (à noter que les opérations de transport ne recevront une commande du stock en aval que si toutes les opérations de production concurrentes n'ont pas suffisamment de capacité pour traiter toutes les commandes ou si elles n'ont pas d'opérations de production concurrentes).
+            - key: SourcingProportions
+              value:
+                en: Sourcing proportions
+                fr: Proportions d'approvisionnement
+              tooltipText:
+                en: The quantity ordered from the stock is distributed among the sources following the defined sourcing proportions, respecting the quantity which can be sent by the source. If there is a remaining quantity to allocate due to a capacity constraint, then this quantity is distributed among the sources following the defined sourcing proportions.
+                fr: La quantité commandée à partir du stock est répartie entre les sources selon les proportions d'approvisionnement définies, en respectant la quantité pouvant être envoyée par la source. S'il reste une quantité à allouer en raison d'une contrainte de capacité, cette quantité est alors répartie entre les sources selon les proportions d'approvisionnement définies
+            - key: HighestStock
+              value:
+                en: The highest available stock first
+                fr: La plus grande quantité disponible en premier
+              tooltipText:
+                en: Consider the directly upstream production operations and transports one by one in a determined order following their available quantities with the greatest first (in the event of a tie, the choice is based on the alphabetical order of their ID). Assign the quantity to order by allocating to each source a quantity equal to the minimum between the remaining quantity to order and the quantity which can be sent by the source. If, at the end of the ordering allocation, a quantity to order remains, it is assigned following an equidistribution.
+                fr: Considère les opérations de production et les transports directement en amont, un par un, dans un ordre déterminé en fonction de leurs quantités disponibles, de la plus grande à la plus petite (en cas d'égalité, le choix se fait en fonction de l'ordre alphabétique de leur ID). Attribue la quantité à commander en allouant à chaque source une quantité égale au minimum entre la quantité restante à commander et la quantité pouvant être envoyée par la source. Si, à la fin de l'allocation des commandes, il reste une quantité à commander, elle est attribuée en suivant une distribution équitable.
+            - key: HighestPriority
+              value:
+                en: The highest priority first
+                fr: La plus haute priorité en premier
+              tooltipText:
+                en: Consider the directly upstream production operations and transports one by one in a determined order following their priority level defined in the dataset (in the event of a tie, the choice is based on the alphabetical order of their ID). Assign the quantity to order by allocating to each source a quantity equal to the minimum between the remaining quantity to order and the quantity which can be sent by the source. If, at the end of the ordering allocation, a quantity to order remains, it is assigned to the first priority source.
+                fr: Considère les opérations de production et les transports directement en amont, un par un, dans un ordre déterminé en fonction de leur niveau de priorité défini dans le jeu de données (en cas d'égalité, le choix se fait en fonction de l'ordre alphabétique de leur ID). Attribue la quantité à commander en allouant à chaque source une quantité égale au minimum entre la quantité restante à commander et la quantité pouvant être envoyée par la source. Si, à la fin de l'allocation des commandes, il reste une quantité à commander, elle est attribuée à la source ayant la première priorité.
+            - key: FromDataset
+              value:
+                en: Use dataset values
+                fr: Utiliser les valeurs du jeu de données
+              tooltipText:
+                en: Enables to use different sourcing policies (to be defined for each stock in the dataset).
+                fr: Permet d'utiliser différentes politiques d'approvisionnement (à définir pour chaque stock dans le jeu de données).
+          tooltipText:
+            fr: |-
+              Ensemble de règles, paramétrables ou non, définissant comment la quantité commandée du stock est répartie entre ses opérations de production et transport directement en amont (sources).
+            en: |-
+              Set of rules, configurable or not, defining how the quantity ordered from the stock is distributed among its directly upstream production operations and transports (sources).
+      - id: stock_dispatch_policy
+        labels:
+          fr: Politique de distribution des stocks
+          en: Stock dispatch policy
+        varType: enum
+        defaultValue: FromDataset
+        options:
+          enumValues:
+            - key: Equidistribution
+              value:
+                en: Equidistribution
+                fr: Equirépartition
+              tooltipText:
+                en: |-
+                 The available quantity in the stock is evenly distributed among the directly downstream production and transport operations which received an order for the current time step and the stock itself if stock retention is allowed (Intermediary stock dispatch policy = Can retain quantity) and the stock has a demand or a backlog for the current time step.
+                 The difference with the standard policy is the consideration of the quantities requested by downstream operations.
+                fr: |-
+                 La quantité disponible dans le stock est répartie uniformément entre les opérations de production et de transport directement en aval qui ont reçu une commande pour le pas de temps actuel et le stock lui-même si la rétention de stock est autorisée (Politique de distribution des stocks intermédiaires = Peut retenir des quantités) et que le stock a une demande ou un arriéré de demandes non servies pour le pas de temps actuel.
+                 La différence avec la politique standard réside dans la prise en compte des quantités demandées par les opérations en aval.
+            - key: DispatchProportions
+              value:
+                en: Dispatch proportions
+                fr: Proportions de distribution
+              tooltipText:
+                en: In case of multiple possible destinations, the quantity dispatched from a stock is distributed among the destinations following the defined dispatch proportions.
+                fr: En cas de multiples destinations possibles, la quantité distribuée à partir d'un stock est répartie entre les destinations selon les proportions de distribution définies.
+            - key: GreatestQuantity
+              value:
+                en: The greatest required quantity first
+                fr: La plus grande quantité requise en premier
+              tooltipText:
+                en: Consider the directly downstream production operations and transports one by one in a determined order following their required quantities with the greatest first, in the event of a tie, the choice is based on the alphabetical order of their ID. Distribute the available quantity by allocating to each one a quantity equal to the minimum between its required quantity and the remaining available quantity.
+                fr: Les opérations de production et les transports directement en aval sont considérés un par un dans l'ordre décroissant de leurs quantités requises, les égalités étant départagées par l'ordre alphabétique de leurs identifiants. La quantité disponible est répartie en assignant à chacun une quantité égale au minimum entre sa quantité requise et la quantité disponible restante.
+            - key: SmallestQuantity
+              value:
+                en: The smallest required quantity first
+                fr: La plus petite quantité requise en premier
+              tooltipText:
+                en: Consider the directly downstream production operations and transports one by one in a determined order following their required quantities with the smallest first, in the event of a tie, the choice is based on the alphabetical order of their ID. Distribute the available quantity by allocating to each one a quantity equal to the minimum between its required quantity and the remaining available quantity.
+                fr: Les opérations de production et les transports directement en aval sont considérés un par un dans l'ordre croissant de leurs quantités requises, les égalités étant départagées par l'ordre alphabétique de leurs identifiants. La quantité disponible est répartie en assignant à chacun une quantité égale au minimum entre sa quantité requise et la quantité disponible restante.
+            - key: HighestPriority
+              value:
+                en: The highest priority first
+                fr: La plus haute priorité en premier
+              tooltipText:
+                en: Consider the directly downstream production operations and transports one by one in a determined order following their priorities with the highest first, in the event of a tie, the choice is based on the alphabetical order of their ID. Distribute the available quantity by allocating to each one a quantity equal to the minimum between its required quantity and the remaining available quantity.
+                fr: Les opérations de production et les transports directement en aval sont considérés un par un dans l'ordre décroissant de leurs priorités, les égalités étant départagées par l'ordre alphabétique de leurs identifiants. La quantité disponible est répartie en assignant à chacun une quantité égale au minimum entre sa quantité requise et la quantité disponible restante.
+            - key: FromDataset
+              value:
+                en: Use dataset values
+                fr: Utiliser les valeurs du jeu de données
+              tooltipText:
+                en: Enables to use different stock dispatch policies (to be defined for each stock in the dataset).
+                fr: Permet d'utiliser différentes politiques de distribution des stock (à définir pour chaque stock dans le jeu de données).
+          tooltipText:
+            fr: |-
+              Ensemble de règles, paramétrables ou non, définissant la répartition de la quantité disponible sur un stock entre ses branches aval (destinations).
+            en: |-
+              Set of rules, configurable or not, defining how the available quantity at a stock is distributed among its downstream branches (destinations).
+      - id: production_policy
+        labels:
+          fr: Politique de production
+          en: Production policy
+        varType: enum
+        defaultValue: FromDataset
+        options:
+          enumValues:
+            - key: Equidistribution
+              value:
+                en: Equidistribution
+                fr: Equirépartition
+              tooltipText:
+                en: The available time of the production resource is evenly distributed among the contained production operations which received an order for the current time step.
+                fr: Le temps disponible de la ressource de production est réparti uniformément entre les opérations de production contenues qui requièrent une quantité.
+            - key: ProductionProportions
+              value:
+                en: Production proportions
+                fr: Proportions de production
+              tooltipText:
+                en: In case of multiple possible production operations for a production resource, the opening time is allocated to each production operation following the production proportions.
+                fr: En cas de multiples opérations de production possibles pour une ressource de production, le temps d'ouverture est alloué à chaque opération de production en fonction des proportions de production.
+            - key: GreatestWorkload
+              value:
+                en: The greatest workload first
+                fr: La plus grande charge de travail en premier
+              tooltipText:
+                en: Consider the contained production operations one by one in a determined order following their required times with the greatest first, in the event of a tie, the choice is based on the alphabetical order of their ID. Distribute the available time by allocating to each one a time equal to the minimum between its required time and the remaining available time.
+                fr: Les opérations de production contenues sont considérées une par une dans l'ordre décroissant de leurs temps requis, les égalités étant départagées suivant l'ordre alphabétique de leurs identifiants. Le temps disponible est réparti en allouant à chacune un temps égal au minimum entre son temps requis et le temps disponible restant.
+            - key: SmallestWorkload
+              value:
+                en: The smallest workload first
+                fr: La plus petite charge de travail en premier
+              tooltipText:
+                en: Consider the contained production operations one by one in a determined order following their required times with the smallest first, in the event of a tie, the choice is based on the alphabetical order of their ID. Distribute the available time by allocating to each one a time equal to the minimum between its required time and the remaining available time.
+                fr: Les opérations de production contenues sont considérées une par une dans l'ordre croissant de leurs temps requis, les égalités étant départagées suivant l'ordre alphabétique de leurs identifiants. Le temps disponible est réparti en allouant à chacune un temps égal au minimum entre son temps requis et le temps disponible restant.
+            - key: HighestPriority
+              value:
+                en: The highest priority first
+                fr: La plus haute priorité en premier
+              tooltipText:
+                en: Consider the contained production operations one by one in a determined order following their priorities with the highest first, in the event of a tie, the choice is based on the alphabetical order of their ID. Distribute the available time by allocating to each one a time equal to the minimum between its required time and the remaining available time.
+                fr: Les opérations de production contenues sont considérées une par une dans l'ordre décroissant de leurs priorités, les égalités étant départagées suivant l'ordre alphabétique de leurs identifiants. Le temps disponible est réparti en allouant à chacune un temps égal au minimum entre son temps requis et le temps disponible restant.
+            - key: FromDataset
+              value:
+                en: Use dataset values
+                fr: Utiliser les valeurs du jeu de données
+              tooltipText:
+                en: Enables to use different production policies (to be defined for each production resource in the dataset).
+                fr: Permet d'utiliser différentes politiques de production (à définir pour chaque ressource de production dans le jeu de données).
+          tooltipText:
+            fr: |-
+              Ensemble de règles, paramétrables ou non, définissant la répartition du temps disponible de la ressource de production entre ses opérations de production.
+            en: |-
+              Set of rules, configurable or not, defining how the available time of the production resource is distributed among its production operations.
+      - id: activate_uncertainties
+        labels:
+          en: Uncertainties activation by attribute
+          fr: Activation des incertitudes par attribut
+        varType: list
+        options:
+          dynamicEnumValues:
+            type: cypher
+            query: 'MATCH(u:Uncertainties) RETURN DISTINCT u.Attribute as attribute'
+            resultKey: attribute
+          tooltipText:
+            en: Select the attribute on which uncertainties will be activated for the analysis.
+            fr: Sélectionner les attributs sur lesquels les incertitudes seront activées pour l'analyse.
+      - id: sensitive_parameter
+        labels:
+          fr: Variable perturbée
+          en: Disrupted variable
+        varType: enum
+        defaultValue: Production Resource Opening Time
+        options:
+          enumValues:
+            - key: Production Resource Opening Time
+              value:
+                en: Production Resource Opening Time
+                fr: Temps d'ouverture de ressource de production
+            - key: Transport Duration
+              value:
+                en: Transport Duration
+                fr: Durée de transport
+            - key: Fixed Production Cost
+              value:
+                en: Fixed Production Cost
+                fr: Coût de production fixe
+            - key: Operating Performance
+              value:
+                en: Operating Performance
+                fr: Performance opérationnelle
+            - key: Cycle Time
+              value:
+                en: Cycle Time
+                fr: Temps de cycle
+            - key: Variable Production Cost
+              value:
+                en: Variable Production Cost
+                fr: Coût de production variable
+            - key: Production CO2 Unit Emissions
+              value:
+                en: Production CO2 Unit Emissions
+                fr: Émissions de CO2 liées à la production
+            - key: Production Minimum Order Quantity
+              value:
+                en: Production Minimum Order Quantity
+                fr: Quantité minimum de commande
+            - key: Production Multiple Order Quantity
+              value:
+                en: Production Multiple Order Quantity
+                fr: Multiple de commande
+            - key: Production Plan
+              value:
+                en: Production Plan
+                fr: Plan de production
+            - key: Initial Stock
+              value:
+                en: Initial Stock
+                fr: Quantité initiale
+            - key: Purchasing Unit Cost
+              value:
+                en: Purchasing Unit Cost
+                fr: Coût d'achat
+            - key: Unit Income
+              value:
+                en: Unit Income
+                fr: Revenu
+            - key: Storage Unit Cost
+              value:
+                en: Storage Unit Cost
+                fr: Coût de stockage
+            - key: Order Point
+              value:
+                en: Order Point
+                fr: Seuil de commande
+            - key: Order Quantities
+              value:
+                en: Order Quantities
+                fr: Quantité commandée
+            - key: Order Up To Levels
+              value:
+                en: Order Up To Levels
+                fr: Quantité cible
+            - key: Safety Quantities
+              value:
+                en: Safety Quantities
+                fr: Quantité de sûreté
+            - key: Transport Unit Cost
+              value:
+                en: Transport Unit Cost
+                fr: Coût de transport
+            - key: Custom Fees
+              value:
+                en: Custom Fees
+                fr: Frais de douane
+            - key: Transport CO2 Unit Emission
+              value:
+                en: Transport CO2 Unit Emission
+                fr: Émissions de CO2 liées au transport
+            - key: Transport Minimum Order Quantity
+              value:
+                en: Transport Minimum Order Quantity
+                fr: Quantité minimum de commande au transport
+            - key: Transport Multiple Order Quantity
+              value:
+                en: Transport Multiple Order Quantity
+                fr: Multiple de commande au transport
+          tooltipText:
+            fr: Type de paramètre sur lequel l'étude portera.
+            en: Type of parameter on which the study will be performed.
+      - id: change
+        labels:
+          fr: Type de perturbation
+          en: Type of disruption
+        varType: enum
+        defaultValue: relative
+        options:
+          enumValues:
+            - key: relative
+              value:
+                en: Relative
+                fr: Relatif
+              tooltipText:
+                en: variable = reference * (1 + variation)
+                fr: variable = référence * (1 + variation)
+            - key: absolute
+              value:
+                en: Absolute
+                fr: Absolu
+              tooltipText:
+                en: variable = reference + variation
+                fr: variable = référence + variation
+            - key: replacement
+              value:
+                en: Replacement
+                fr: Remplacement
+              tooltipText:
+                en: variable = variation
+                fr: variable = variation
+          tooltipText:
+            fr: Mode utilisé par la méthode un à la fois pour faire varier chaque variable une par une.
+            en: Mode used by the one-at-a-time method to vary each variable one by one.
+      - id: variation
+        labels:
+          fr: Valeur de la perturbation
+          en: Disruption value
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: |-
+              Valeur décimale utilisée par la méthode un à la fois pour faire varier chaque variable une par une. La validité dépend du changement sélectionné :
+              • Relatif : variation ≥ -1 ;
+              • Absolu : variation ≥ - référence ;
+              • Remplacement : variation ≥ 0.
+            en: |-
+              Decimal value used by the one-at-a-time method to vary each variable one by one. Validity depends on selected change:
+              • Relative: variation ≥ -1;
+              • Absolute: variation ≥ - reference;
+              • Replacement: variation ≥ 0.
+      - id: timeinterval
+        labels:
+          fr: Période de temps
+          en: Time period
+        varType: bool
+        defaultValue: false
+        options:
+          tooltipText:
+            fr: Option pour définir si le changement se produit pendant un intervalle de temps spécifique (sinon, il est appliqué pendant toute la durée de la simulation).
+            en: Option to specify whether the change happens during a specific interval (otherwise it is applied for the complete duration of the simulation).
+      - id: initialtimestep
+        labels:
+          fr: Premier pas de temps
+          en: Initial time step
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: Pas de temps auquel le changement commence à avoir lieu (inclus).
+            en: Time step at which the change starts to take place (included).
+      - id: finaltimestep
+        labels:
+          fr: Dernier pas de temps
+          en: Final time step
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: Pas de temps après lequel le changement se termine (inclus).
+            en: Time step after which the change ends (included).
+      - id: demand_plan
+        labels:
+          fr: Plan de demande
+          en: Demand plan
+        varType: "%DATASETID%"
+        options:
+          connectorId: "{{azure_connector_id}}"
+          defaultFileTypeFilter: .csv
+          subType: AZURETABLE
+          azureFunction: https://{{services['api.organization_id']}}-{{workspace_key}}.azurewebsites.net/api/DemandsPlan
+          azureFunctionHeaders:
+            x-functions-key: {{demands_plan_function_key}}
+          columns:
+            - field: id
+              type:
+                - nonResizable
+                - nonEditable
+                - nonSortable
+            - field: Timestep
+              type:
+                - int
+              minValue: 0
+              acceptsEmptyFields: true
+            - field: Demands
+              type:
+                - number
+              minValue: 0
+              acceptsEmptyFields: true
+            - field: DemandWeights
+              type:
+                - number
+              minValue: 0
+      - id: transport_duration
+        labels:
+          fr: Durées des transports
+          en: Transport durations
+        varType: "%DATASETID%"
+        options:
+          connectorId: "{{azure_connector_id}}"
+          defaultFileTypeFilter: .csv
+          subType: AZURETABLE
+          azureFunction: https://{{services['api.organization_id']}}-{{workspace_key}}.azurewebsites.net/api/TransportDuration
+          azureFunctionHeaders:
+            x-functions-key: {{transport_duration_function_key}}
+          columns:
+            - field: source
+              type:
+                - nonResizable
+                - nonEditable
+                - nonSortable
+            - field: target
+              type:
+                - nonResizable
+                - nonEditable
+                - nonSortable
+            - field: Duration
+              type:
+                - int
+              minValue: 0
+              acceptsEmptyFields: true
+      - id: production_resource_opening_time
+        labels:
+          fr: Temps d'ouverture des ressources de production
+          en: Production resource opening times
+        varType: "%DATASETID%"
+        options:
+          connectorId: "{{azure_connector_id}}"
+          defaultFileTypeFilter: .csv
+          subType: AZURETABLE
+          azureFunction: https://{{services['api.organization_id']}}-{{workspace_key}}.azurewebsites.net/api/ResourceOpeningTime
+          azureFunctionHeaders:
+            x-functions-key: {{resource_opening_time_function_key}}
+          columns:
+            - field: id
+              type:
+                - nonResizable
+                - nonEditable
+                - nonSortable
+            - field: Timestep
+              type:
+                - int
+              minValue: 0
+              acceptsEmptyFields: true
+            - field: OpeningTimes
+              type:
+                - number
+              minValue: 0
+              acceptsEmptyFields: true
+      - id: carbon_tax
+        labels:
+          fr: Taxe Carbone
+          en: Carbon Tax
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: "Coût par émission unitaire de CO2 : Le coût lié aux émissions de CO2 est calculé à la fin de la simulation sur la base de l'ensemble des émissions de CO2 (production, achat, transport) selon la formule : taxe carbone x émissions totales de CO2."
+            en: "Cost per CO2 unit emission: Cost linked to CO2 emissions is calculated at the end of simulation based on all CO2 emissions (production, purchasing, transport) following the formula: carbon tax x CO2 emissions."
+      - id: safety_quantity_variation
+        labels:
+          en: Safety quantity variation
+          fr: Variation des quantités de sécurité
+        varType: number
+        defaultValue: 0
+        minValue: -1
+        options:
+          tooltipText:
+            en: |-
+              Adjust the safety quantities for all stocks by a percentage. Use positive values to increase and negative values to decrease.
+              Modification: safety quantity = reference safety quantity * (1 + variation).
+              Validation: decimal value ≥ -1.
+            fr: |-
+              Ajuste les quantités de sécurité pour tous les stocks en fonction d'un pourcentage. Utilisez des valeurs positives pour augmenter et négatives pour diminuer.
+              Modification : quantité de sécurité = quantité de sécurité de référence * (1 + variation).
+              Validation : valeur décimale ≥ -1.
+      - id: KPI
+        labels:
+          fr: "Objectif de l'optimisation : Indicateur de performance"
+          en: "Optimization objective: Key performance indicator"
+        varType: enum
+        defaultValue: Profit
+        options:
+          enumValues:
+            - key: Profit
+              value:
+                en: Profit
+                fr: Profit
+            - key: OPEX
+              value:
+                en: OPEX
+                fr: Coût opérationnel total
+            - key: AverageStockValue
+              value:
+                en: Average Stock Value
+                fr: Valeur de stock global moyenne
+            - key: OnTimeAndInLateFillRateServiceLevel
+              value:
+                en: Fill Rate Service Level
+                fr: Taux de service des demandes
+            - key: CO2Emissions
+              value:
+                en: CO2 Emissions
+                fr: Émissions de CO2
+            - key: TotalServedQuantity
+              value:
+                en: Total Served Quantity
+                fr: Total des quantités servies
+            - key: IndividualOnTimeAndInLateFillRateServiceLevel
+              value:
+                en: Individual Fill Rate Service Level
+                fr: Taux de service des demandes individuels
+      - id: statistic
+        labels:
+          fr: "Objectif de l'optimisation : Mesure statistique"
+          en: "Optimization objective: Statistical measure"
+        varType: enum
+        defaultValue: mean
+        options:
+          enumValues:
+            - key: mean
+              value:
+                en: Mean
+                fr: Moyenne
+            - key: std
+              value:
+                en: Standard deviation
+                fr: Écart type
+            - key: sem
+              value:
+                en: Standard error of the mean
+                fr: Erreur type de la moyenne
+            - key: quantile 5%
+              value:
+                en: Quantile 5%
+                fr: Quantile 5%
+            - key: quantile 10%
+              value:
+                en: Quantile 10%
+                fr: Quantile 10%
+            - key: quantile 15%
+              value:
+                en: Quantile 15%
+                fr: Quantile 15%
+            - key: quantile 20%
+              value:
+                en: Quantile 20%
+                fr: Quantile 20%
+            - key: quantile 25%
+              value:
+                en: Quantile 25%
+                fr: Quantile 25%
+            - key: quantile 30%
+              value:
+                en: Quantile 30%
+                fr: Quantile 30%
+            - key: quantile 35%
+              value:
+                en: Quantile 35%
+                fr: Quantile 35%
+            - key: quantile 40%
+              value:
+                en: Quantile 40%
+                fr: Quantile 40%
+            - key: quantile 45%
+              value:
+                en: Quantile 45%
+                fr: Quantile 45%
+            - key: quantile 50%
+              value:
+                en: Quantile 50%
+                fr: Quantile 50%
+            - key: quantile 55%
+              value:
+                en: Quantile 55%
+                fr: Quantile 55%
+            - key: quantile 60%
+              value:
+                en: Quantile 60%
+                fr: Quantile 60%
+            - key: quantile 65%
+              value:
+                en: Quantile 65%
+                fr: Quantile 65%
+            - key: quantile 70%
+              value:
+                en: Quantile 70%
+                fr: Quantile 70%
+            - key: quantile 75%
+              value:
+                en: Quantile 75%
+                fr: Quantile 75%
+            - key: quantile 80%
+              value:
+                en: Quantile 80%
+                fr: Quantile 80%
+            - key: quantile 85%
+              value:
+                en: Quantile 85%
+                fr: Quantile 85%
+            - key: quantile 90%
+              value:
+                en: Quantile 90%
+                fr: Quantile 90%
+            - key: quantile 95%
+              value:
+                en: Quantile 95%
+                fr: Quantile 95%
+          tooltipText:
+            fr: Statistique de l'indicateur de performance qui sera optimisée.
+            en: Which statistic of the KPI will be optimized.
+      - id: optimization_mode
+        labels:
+          fr: "Objectif de l'optimisation : Mode d'optimisation"
+          en: "Optimization objective: Optimization mode"
+        varType: enum
+        defaultValue: maximize
+        options:
+          enumValues:
+            - key: maximize
+              value:
+                en: Maximize
+                fr: Maximiser
+            - key: minimize
+              value:
+                en: Minimize
+                fr: Minimiser
+            - key: target
+              value:
+                en: Target
+                fr: Cible
+      - id: targeted_value
+        labels:
+          fr: "Objectif de l'optimisation : valeur ciblée"
+          en: "Optimization objective: targeted value"
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            fr: Utilisé uniquement si le mode d'optimisation est "Cible".
+            en: Used only if optimization mode is "Target".
+      - id: decision_variable
+        labels:
+          fr: Variable de décision
+          en: Decision variable
+        varType: enum
+        defaultValue: FromDataset
+        options:
+          enumValues:
+            - key: FromDataset
+              value:
+                en: Use dataset values
+                fr: Utiliser les valeurs du jeu de données
+              tooltipText:
+                en: Enables the use of decision variables as defined in the dataset. This includes detailed decision variables as filled in in the sheets "OptimizationDecisionVariables" and/or "OptDecisionVariableGroups" of the dataset.
+                fr: Permet d'utiliser les variables de décision telles que définies dans le jeu de données. Cela inclut les variables de décision détaillées telles que renseignées dans les feuilles "OptimizationDecisionVariables" et/ou "OptDecisionVariableGroups" du jeu de données.
+            - key: OpeningTimes
+              value:
+                en: Opening time
+                fr: Temps d'ouverture
+            - key: OrderPoints
+              value:
+                en: Order point
+                fr: Seuil de commande
+            - key: OrderQuantities
+              value:
+                en: Order quantity
+                fr: Quantité commandée
+            - key: SafetyQuantities
+              value:
+                en: Safety quantity
+                fr: Stock de sécurité
+            - key: SourcingProportions
+              value:
+                en: Sourcing proportion
+                fr: Proportion d'approvisionnement
+            - key: ReviewPeriod
+              value:
+                en: Review period
+                fr: Période de revue
+            - key: Advance
+              value:
+                en: Advance
+                fr: Avance
+      - id: decision_variable_min
+        labels:
+          fr: "Variable de decision : Minimum"
+          en: "Decision variable: Minimum"
+        varType: number
+        defaultValue: 0
+        options:
+          tooltipText:
+            en: Only taken into account if no detailed decision variables are defined in the dataset.
+            fr: Pris en compte uniquement si aucune variable de décision détaillée n'est définie dans le jeu de données.
+      - id: decision_variable_max
+        labels:
+          fr: "Variable de decision : Maximum"
+          en: "Decision variable: Maximum"
+        varType: number
+        defaultValue: 10000
+        options:
+          tooltipText:
+            en: Only taken into account if no detailed decision variables are defined in the dataset.
+            fr: Pris en compte uniquement si aucune variable de décision détaillée n'est définie dans le jeu de données.
+      - id: sample_size_uncertainty_analysis
+        labels:
+          fr: Taille des échantillons de l'analyse d'incertitude
+          en: Sample size for the uncertainty analysis
+        varType: number
+        defaultValue: 1000
+        options:
+          tooltipText:
+            fr: Nombre de simulations pour l'analyse d'incertitude.
+            en: Number of simulations for the uncertainty analysis.
+      - id: sample_size_uncertainty_analysis_optim
+        labels:
+          fr: Taille des échantillons pour chaque analyse d'incertitude pendant la boucle d'optimisation
+          en: Sample size for the uncertainty analyzes during the optimization loop
+        varType: number
+        defaultValue: 15
+        options:
+          tooltipText:
+            fr: Nombre de simulations pour chaque analyses d'incertitude pendant la boucle d'optimisation.
+            en: Number of simulations for each uncertainty analysis during the optimization loop.
+      - id: final_sample_size_uncertainty_analysis
+        labels:
+          fr: Taille des échantillons de l'analyse d'incertitude finale
+          en: Sample size for the final uncertainty analysis
+        varType: number
+        defaultValue: 1000
+        options:
+          tooltipText:
+            fr: Nombre de simulations pour l'analyse d'incertitude finale avec les variables de decision optimales.
+            en: Number of simulations for the final uncertainty analysis with the optimal decision variables.
+      - id: uncertainty_analysis_output_data
+        labels:
+          en: Uncertainty analysis output data
+          fr: Données de sortie de l'analyse d'incertitude
+        varType: list
+        defaultValue: '["Transports", "Stocks", "StocksAtEndOfSimulation", "Performances", "PerformanceAMQP"]'
+        options:
+          enumValues:
+            - key: Transports
+              value:
+                en: Detailed statistics on transports
+                fr: Statistiques détaillées sur les transports
+            - key: Stocks
+              value:
+                en: Detailed statistics on stocks
+                fr: Statistiques détaillées sur les stocks
+            - key: StocksAtEndOfSimulation
+              value:
+                en: Global statistics on stocks
+                fr: Statistiques globales sur les stocks
+            - key: Performances
+              value:
+                en: Global statistics on the simulation
+                fr: Statistiques globales sur la simulation
+            - key: PerformanceAMQP
+              value:
+                en: KPI of each simulation
+                fr: KPI de chaque simulation
+          tooltipText:
+            en: Select the output data to store during an uncertainty analysis, knowing that the more data selected, the longer the run time and the higher the memory usage. If a crash occurs, reducing the number of data could solve a possible problem related to memory usage.
+            fr: Sélectionner les données de sortie à stocker lors d'une analyse d'incertitude en sachant que plus il y aura de données sélectionnées, plus le temps de run sera long et l'utilisation de mémoire conséquente. Si un crash se produit, réduire le nombre de données pourrait résoudre un éventuel problème lié à l'utilisation de l'espace mémoire.
+      - id: automatic_parallelization_config
+        labels:
+          fr: Configuration automatique de la parallélisation de calculs
+          en: Automatic configuration for parallel computing
+        varType: bool
+        defaultValue: true
+        options:
+          tooltipText:
+            fr: Si vrai, la parallélisation des calculs sera automatiquement configurée en fonction du nombre de coeurs disponibles.
+            en: If true, the parallelization will be automatically configured according to the number of available cores.
+      - id: max_iterations_for_optim
+        labels:
+          fr: Nombre maximum d'iterations pour l'algorithm d'optimisation
+          en: Maximum number of iterations for the optimization algorithm
+        varType: number
+        defaultValue: 1000
+      - id: optimization_maximal_duration
+        labels:
+          fr: Durée maximale de l'optimisation
+          en: Maximal duration of the optimization
+        varType: number
+        defaultValue: 3600
+        options:
+          tooltipText:
+            fr: Durée en seconde.
+            en: Duration in seconds.
+      - id: optimization_algorithm
+        labels:
+          fr: Algorithme d'optimisation
+          en: Optimization algorithm
+        varType: enum
+        defaultValue: NGOpt
+        options:
+          enumValues:
+            - key: NGOpt
+              value: NGOpt
+            - key: CMA
+              value: CMA
+            - key: DE
+              value: DE
+            - key: OnePlusOne
+              value: OnePlusOne
+            - key: Cobyla
+              value: Cobyla
+      - id: optimization_batch_size
+        labels:
+          fr: Taille de lot de l'optimisation
+          en: Optimization batch size
+        varType: number
+        defaultValue: 15
+      - id: max_number_of_sim_in_parallel
+        labels:
+          en: Maximum number of simulations in parallel
+          fr: Nombre maximum de simulations en parallèle
+        varType: number
+        defaultValue: -1
+        options:
+          tooltipText:
+            en: |-
+              Only accepts non-zero integers.
+              -1 corresponds to the number of CPUs.
+            fr: |-
+              N'accepte que les nombres entiers non nuls.
+              -1 correspond au nombre de CPUs.
+      - id: run_type
+        labels:
+          fr: Type de scénario
+          en: Run type
+        varType: enum
+        defaultValue: Lever
+        options:
+          enumValues:
+            - key: Lever
+              value: Lever
+            - key: MILPOptimization
+              value: MILPOptimization
+            - key: UncertaintyAnalysis
+              value: UncertaintyAnalysis
+            - key: SensitivityAnalysis
+              value: SensitivityAnalysis
+            - key: CustomOptimization
+              value: CustomOptimization
+            - key: StochasticOptimization
+              value: StochasticOptimization
+    parameterGroups:
+      - id: simulation
+        labels:
+          fr: Horizon de simulation
+          en: Simulation horizon
+        parameters:
+          - ScenarioName
+          - start_date
+          - end_date
+          - simulation_granularity
+      - id: mass_action_lever
+        labels:
+          fr: Levier d'action global
+          en: Mass action lever
+        parameters:
+          - mass_lever_excel_file
+      - id: optimization
+        labels:
+          fr: Optimisation
+          en: Optimization
+        parameters:
+          - optimization_objective
+      - id: uncertainty_analysis
+        labels:
+          fr: Simulation des incertitudes
+          en: Uncertainty simulation
+        parameters:
+          - activate_uncertainties
+          - sample_size_uncertainty_analysis
+      - id: uncertainty_analysis_expert
+        labels:
+          en: Uncertainty analysis expert settings
+          fr: Paramètres experts de l'analyse d'incertitude
+        parameters:
+          - max_number_of_sim_in_parallel
+          - uncertainty_analysis_output_data
+      - id: sensitivity_analysis
+        labels:
+          fr: Paramètres de l'analyse de sensibilité
+          en: Sensitivity analysis parameters
+        parameters:
+          - sensitive_parameter
+          - change
+          - variation
+          - timeinterval
+          - initialtimestep
+          - finaltimestep
+      - id: model_behavior
+        labels:
+          fr: Paramètres globaux
+          en: Global settings
+        parameters:
+          - manage_backlog_quantities
+          - empty_obsolete_stocks
+          - actualize_shipments
+          - batch_size
+          - financial_cost_of_stock
+          - intermediary_stock_dispatch_policy
+          - carbon_tax
+      - id: safety_stock
+        labels:
+          fr: Stock de sécurité
+          en: Safety stock
+        parameters:
+          - safety_quantity_variation
+      - id: flow_management_policies
+        labels:
+          fr: Politiques de gestion des flux
+          en: Flow management policies
+        parameters:
+          - stock_policy
+          - sourcing_policy
+          - stock_dispatch_policy
+          - production_policy
+      - id: demand_plan_group
+        labels:
+          fr: Plan de demande
+          en: Demand plan
+        parameters:
+          - demand_plan
+      - id: transport_duration_group
+        labels:
+          fr: Durées des transports
+          en: Transport durations
+        parameters:
+          - transport_duration
+      - id: production_resource_opening_time_group
+        labels:
+          fr: Temps d'ouverture des ressources de production
+          en: Production resource opening times
+        parameters:
+          - production_resource_opening_time
+      - id: uncertainty_config
+        labels:
+          fr: Simulation des incertitudes
+          en: Uncertainty simulation
+        parameters:
+          - activate_uncertainties
+          - sample_size_uncertainty_analysis_optim
+          - final_sample_size_uncertainty_analysis
+      - id: expert_config
+        labels:
+          fr: Configuration experte de l'optimisation
+          en: Expert optimization configuration
+        parameters:
+          - optimization_algorithm
+          - optimization_maximal_duration
+          - max_iterations_for_optim
+          - optimization_batch_size
+          - automatic_parallelization_config
+          - max_number_of_sim_in_parallel
+      - id: business_config
+        labels:
+          fr: Configuration métier de l'optimisation
+          en: Business optimization configuration
+        parameters:
+          - KPI
+          - optimization_mode
+          - targeted_value
+          - decision_variable
+          - decision_variable_min
+          - decision_variable_max
+      - id: business_config_sto
+        labels:
+          fr: Configuration métier de l'optimisation
+          en: Business optimization configuration
+        parameters:
+          - KPI
+          - statistic
+          - optimization_mode
+          - targeted_value
+          - decision_variable
+          - decision_variable_min
+          - decision_variable_max
+      - id: run_type_group
+        labels:
+          fr: Sélection du type de scénario
+          en: Run type selection
+        parameters:
+          - ScenarioName
+          - run_type
+    runTemplates:
+      - id: Lever
+        name: Lever
+        labels:
+          fr: Simulation prédéterminée
+          en: Policy-driven simulation
+        computeSize: basic
+        runSizing:
+          requests:
+            cpu: 3
+            memory: 4Gi
+          limits:
+            cpu: 3
+            memory: 4Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - flow_management_policies
+          - model_behavior
+          - safety_stock
+      - id: LeverWithTables
+        name: LeverWithTables
+        labels:
+          fr: Simulation prédéterminée (avec tableaux)
+          en: Policy-driven simulation (with tables)
+        computeSize: basic
+        runSizing:
+          requests:
+            cpu: 3
+            memory: 4Gi
+          limits:
+            cpu: 3
+            memory: 4Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - flow_management_policies
+          - model_behavior
+          - demand_plan_group
+          - transport_duration_group
+          - production_resource_opening_time_group
+      - id: UncertaintyAnalysis
+        name: UncertaintyAnalysis
+        labels:
+          fr: Analyse d'incertitude
+          en: Uncertainty analysis
+        computeSize: highmemory
+        runSizing:
+          requests:
+            cpu: 15
+            memory: 105Gi
+          limits:
+            cpu: 15
+            memory: 105Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - flow_management_policies
+          - model_behavior
+          - safety_stock
+          - uncertainty_analysis
+          - uncertainty_analysis_expert
+      - id: SensitivityAnalysis
+        name: SensitivityAnalysis
+        labels:
+          fr: Analyse de sensibilité
+          en: Sensitivity analysis
+        computeSize: highmemory
+        runSizing:
+          requests:
+            cpu: 15
+            memory: 105Gi
+          limits:
+            cpu: 15
+            memory: 105Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - flow_management_policies
+          - model_behavior
+          - sensitivity_analysis
+      - id: MILPOptimization
+        name: MILPOptimization
+        labels:
+          fr: Optimisation du plan d'approvisionnement et de production
+          en: Supply and production plan optimization
+        computeSize: basic
+        runSizing:
+          requests:
+            cpu: 3
+            memory: 4Gi
+          limits:
+            cpu: 3
+            memory: 4Gi
+        applyParameters: true
+        fetchScenarioParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - optimization
+          - model_behavior
+      - id: StochasticOptimization
+        name: StochasticOptimization
+        labels:
+          fr: Optimisation configurable avec simulation des incertitudes
+          en: Configurable optimization with simulation of the uncertainties
+        computeSize: highmemory
+        runSizing:
+          requests:
+            cpu: 15
+            memory: 105Gi
+          limits:
+            cpu: 15
+            memory: 105Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        run: true
+        noDataIngestionState: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - flow_management_policies
+          - model_behavior
+          - business_config_sto
+          - expert_config
+          - uncertainty_config
+      - id: CustomOptimization
+        name: CustomOptimization
+        labels:
+          fr: Optimisation configurable
+          en: Configurable optimization
+        computeSize: highmemory
+        runSizing:
+          requests:
+            cpu: 15
+            memory: 105Gi
+          limits:
+            cpu: 15
+            memory: 105Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        validateData: true
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        run: true
+        noDataIngestionState: true
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+          - simulation
+          - mass_action_lever
+          - flow_management_policies
+          - model_behavior
+          - business_config
+          - expert_config
+      - id: LoadETL
+        name: Load Excel to Data Layer
+        labels:
+          fr: Jeu de données depuis un fichier local (.xlsx)
+          en: Dataset from local file (.xlsx)
+        parameterGroups:
+          - mass_action_lever
+        tags:
+          - datasource
+      - id: Split
+        name: Split
+        labels:
+          fr: Partie par partie
+          en: Part by part
+        computeSize: highmemory
+        runSizing:
+          requests:
+            cpu: 15
+            memory: 105Gi
+          limits:
+            cpu: 15
+            memory: 105Gi
+        fetchScenarioParameters: true
+        applyParameters: true
+        parametersHandlerSource: null
+        validateData: true
+        datasetValidatorSource: null
+        sendDatasetsToDataWarehouse: false
+        sendInputParametersToDataWarehouse: false
+        parametersJson: true
+        preRun: true
+        run: true
+        noDataIngestionState: true
+        preRunSource: null
+        postRun: false
+        stackSteps: true
+        parameterGroups:
+        - run_type_group
+    security: {{security}}
