@@ -1,15 +1,14 @@
 # Babylon deployment project templates
 
-This README is intended to be red step by step from top to bottom.
-
-**Prequisities**
+**Prequisities:**
 - Have a working Cosmo Tech platform
+
+> This README is intended to be red step by step from top to bottom.
 
 <br>
 
-## Vault
-[backend-tf-state-to-vault](https://github.com/Cosmo-Tech/backend-tf-state-to-vault) \
-The goal here is to fill Vault with values of the namespace Terraform state.
+## Fill Vault
+The goal here is to fill Vault with values of the namespace Terraform state with [backend-tf-state-to-vault](https://github.com/Cosmo-Tech/backend-tf-state-to-vault)
 
 ### Installation
 ```
@@ -41,9 +40,10 @@ source ~/backend-tf-state-to-vault/bin/activate
 python main.py config write --resource all --use-azure --engine v1 --platform-id ns_platform_id
 ```
 
-## Babylon
-[Babylon](https://github.com/Cosmo-Tech/Babylon) \
-The goal here is to deploy Cosmo Tech API objects in a namespace.
+<br>
+
+## Deploy with Babylon
+The goal here is to deploy Cosmo Tech API objects in a namespace with [Babylon](https://github.com/Cosmo-Tech/Babylon).
 
 ### Installation
 ```
