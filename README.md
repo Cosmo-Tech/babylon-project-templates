@@ -2,8 +2,12 @@
 
 This README is intended to be red step by step from top to bottom.
 
+<br>
+
 ## Prequisities
 - Have a working Cosmo Tech platform
+
+<br>
 
 ## How to
 
@@ -40,7 +44,9 @@ source ~/backend-tf-state-to-vault/bin/activate
 python main.py config write --resource all --use-azure --engine v1 --platform-id ns_platform_id
 ```
 
-### Babylon 
+### Babylon
+Quick guide of [Babylon](https://github.com/Cosmo-Tech/Babylon)
+
 #### Installation
 ```
 git clone git@github.com:Cosmo-Tech/Babylon.git
