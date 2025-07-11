@@ -1,9 +1,9 @@
 # Babylon deployment project templates
+> This README is intended to be followed step by step from top to bottom.
 
 **Prequisities:**
 - Have a working Cosmo Tech platform
 
-> This README is intended to be red step by step from top to bottom.
 
 <br>
 
