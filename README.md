@@ -62,31 +62,32 @@ babylon namespace use -c ns_context -p ns_platform_id -s state_id
 ```
 
 **Creation**
-```Organization
+```
 babylon apply --organization --var-file variables.yaml project/
 ```
-```Solution
+```
 babylon apply --solution --var-file variables.yaml project/
 ```
-```Webapp
+```
 babylon apply --webapp --var-file variables.yaml project/
 ```
-```Workspace
+```
 babylon apply --workspace --var-file variables.yaml project/
 ```
 
 **Update**
-```Organization *(same command as creation)*
+> Some of the commands below are the same as the creation
+```
 babylon apply --organization --var-file variables.yaml project/
 ```
-```Solution *(same command as creation)*
+```
 babylon apply --webapp --var-file variables.yaml project/
 ```
-```Webapp *(same command as creation)*
+```
 babylon apply --solution --var-file variables.yaml project/
 ```
-```Workspace
-babylon apply --workspace --payload-only  --var-file variables.yaml project/
+```
+babylon apply --workspace --payload-only --var-file variables.yaml project/
 ```
 
 <br>
