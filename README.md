@@ -25,19 +25,19 @@ babylon apply --workspace --var-file variables.yaml project/
 ```
 
 ### Update
-Organization (same command as creation)
+Organization *same command as creation*
 ```
 babylon apply --organization --var-file variables.yaml project/
 ```
-Webapp (same command as creation)
+Webapp *same command as creation*
 ```
 babylon apply --webapp --var-file variables.yaml project/
 ```
-Solution (same command as creation)
+Solution *same command as creation*
 ```
 babylon apply --solution --var-file variables.yaml project/
 ```
-Workspace :
+Workspace
 ```
 babylon apply --workspace --payload-only  --var-file variables.yaml project/
 ```
