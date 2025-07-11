@@ -42,5 +42,5 @@ babylon apply --workspace --payload-only  --var-file variables.yaml project/
 ```
 
 
-# Made with :heart: by Cosmo Tech DevOps team
+*Made with :heart: by Cosmo Tech DevOps team*
  
