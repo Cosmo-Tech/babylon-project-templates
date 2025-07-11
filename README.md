@@ -2,19 +2,16 @@
 
 This README is intended to be red step by step from top to bottom.
 
-<br>
-
-## Prequisities
+**Prequisities**
 - Have a working Cosmo Tech platform
 
 <br>
 
-## How to
+## Vault
+[backend-tf-state-to-vault](https://github.com/Cosmo-Tech/backend-tf-state-to-vault) \
+The goal here is to fill Vault with values of the namespace Terraform state.
 
-### Fill Vault from Terraform state
-Quick guide of [backend-tf-state-to-vault](https://github.com/Cosmo-Tech/backend-tf-state-to-vault)
-
-#### Installation
+### Installation
 ```
 git clone git@github.com:Cosmo-Tech/backend-tf-state-to-vault.git
 python3 -m venv ~/backend-tf-state-to-vault
@@ -22,7 +19,7 @@ source ~/backend-tf-state-to-vault/bin/activate
 pip install -r requirements.txt
 ```
 
-#### Usage
+### Usage
 > Fill all the values below according to your environment
 ```
 export VAULT_ADDR="vault_url"
@@ -44,10 +41,11 @@ source ~/backend-tf-state-to-vault/bin/activate
 python main.py config write --resource all --use-azure --engine v1 --platform-id ns_platform_id
 ```
 
-### Babylon
-Quick guide of [Babylon](https://github.com/Cosmo-Tech/Babylon)
+## Babylon
+[Babylon](https://github.com/Cosmo-Tech/Babylon) \
+The goal here is to deploy Cosmo Tech API objects in a namespace.
 
-#### Installation
+### Installation
 ```
 git clone git@github.com:Cosmo-Tech/Babylon.git
 python3 -m venv ~/babylonenv
@@ -55,7 +53,7 @@ source ~/babylonenv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### Usage
+### Usage
 **Connection**
 > Fill all the values below according to your environment
 ```
