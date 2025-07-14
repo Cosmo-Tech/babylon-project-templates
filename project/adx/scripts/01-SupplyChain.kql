@@ -1,0 +1,1903 @@
+.execute database script <|
+//
+.create-merge table Configuration (
+    ['SimulationRun']:string,
+    ['ActivateUncertainties']:string,
+    ['ActivateVariableMachineOpeningRate']:string,
+    ['BatchSize']:long,
+    ['EmptyObsoleteStocks']:string,
+    ['EnforceProductionPlan']:string,
+    ['FinancialCostOfStock']:real,
+    ['ManageBacklogQuantities']:string,
+    ['OptimizationObjective']:string,
+    ['SimulatedCycles']:long,
+    ['StartingDate']:datetime,
+    ['StepsPerCycle']:long,
+    ['TimeStepDuration']:long,
+    ['IntermediaryStockDispatchPolicy']:string,
+    ['ActualizeShipments']: string,
+    ['CarbonTax']: real,
+    ['Kpi']:string,
+    ['OptimizationMode']: string,
+    ['Statistic']: string,
+    ['TargetedValue']: real,
+    ['DecisionVariable']: string,
+    ['DecisionVariableMin']: real,
+    ['DecisionVariableMax']: real,
+    ['OptimizationMaximalDuration']: real,
+    ['OptimizationAlgorithm']: string,
+    ['OptimizationBatchSize']:int,
+    ['SampleSizeUncertaintyAnalysis']:int,
+    ['FinalSampleSizeUncertaintyAnalysis']:int,
+    ['MaxIterationsForOptim']:int,
+    ['AutomaticParallelizationConfig']:string,
+    ['MaxNumberOfSimInParallel']:int,
+    ['ServeDemandBeforeBacklog']:string,
+    ['SelectedTimeStep']:int,
+    ['SelectedTag']:string,
+    ['InventoryQuantityForCostComputation']:string,
+    ['ConstraintHandling']:string,
+    ['OptimizationParallelization']:int,
+    ['UncertaintyAnalysisParallelization']:int,
+    ['UncertaintyAnalysisSeedForOptimization']:int,
+    ['UncertaintyAnalysisSeed']:int,
+    ['OptimizationSeed']:int,
+    ['UncertaintyAnalysisOutputData']:string
+)
+//
+.create-merge table ['contains']
+(
+    ['SimulationRun']:string,
+    ['source']:string,
+    ['target']:string,
+    ['subdataset']:string
+)
+//
+.create-merge table Demands (
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Timestep']:long,
+    ['Demands']:real,
+    ['DemandWeights']:real
+)
+//
+.create-merge table DispatchedQuantityMeasures
+(
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['TimeStep']:long,
+    ['Stock']:string,
+    ['Destination']:string,
+    ['Type']:string,
+    ['DispatchedQuantity']:real,
+    ['UndispatchedQuantity']:real
+)
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetCostsAndIncome() {
+    (
+        GetProductionResources
+        | project
+            ScenarioName,
+            SimulationRun,
+            TimeStep,
+            MeasureDate,
+            PartId = "unused",
+            FixedProductionCost
+        | extend MeasureType = "Production"
+    )
+    | union
+    (
+        GetProductionOperations
+        | project
+            ScenarioName,
+            SimulationRun,
+            TimeStep,
+            MeasureDate,
+            PartId,
+            FinancialCostOfStock,
+            InvestmentCost,
+            VariableProductionCost,
+            CO2Emissions,
+            CO2EmissionsCost,
+            Value
+        | extend MeasureType = "Production"
+    )
+    | union
+    (
+        GetTransports
+        | project
+            ScenarioName,
+            SimulationRun,
+            TimeStep,
+            MeasureDate,
+            PartId,
+            FinancialCostOfStock,
+            TransportCost,
+            CustomFees,
+            CO2Emissions,
+            CO2EmissionsCost,
+            Value
+        | extend MeasureType = "Transport"
+    )
+    | union
+    (
+        GetStocks
+        | project
+            ScenarioName,
+            SimulationRun,
+            TimeStep,
+            MeasureDate,
+            PartId,
+            FinancialCostOfStock,
+            StorageCost,
+            Income,
+            Value
+        | extend MeasureType = "Storage"
+    )
+    | union
+    (
+        GetStocks
+        | project
+            ScenarioName,
+            SimulationRun,
+            TimeStep,
+            MeasureDate,
+            PartId,
+            PurchasingCost,
+            CO2Emissions,
+            CO2EmissionsCost
+        | extend MeasureType = "Purchasing"
+    )
+    | project-reorder
+        MeasureType,
+        PartId,
+        * asc
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetFinancialCostOfStock_Light() {
+    let Scenarios = materialize(GetScenarios | project LastSimulationRun);
+//     (
+    (
+        Scenarios
+        | join kind=inner
+        (
+        ProductionOperationMeasures
+        | summarize FinancialCostOfStock = sum(FinancialCostOfStock) by SimulationRun
+        | project SimulationRun, FinancialCostOfStock
+        ) on $left.LastSimulationRun == $right.SimulationRun
+    )
+    | union
+    (
+        Scenarios
+        | join kind=inner
+        (
+        StockMeasures
+        | summarize FinancialCostOfStock = sum(FinancialCostOfStock) by SimulationRun
+        | project SimulationRun, FinancialCostOfStock
+        ) on $left.LastSimulationRun == $right.SimulationRun
+    )
+    | union
+    (
+        Scenarios
+        | join kind=inner
+        (
+        TransportMeasures
+        | summarize FinancialCostOfStock = sum(FinancialCostOfStock) by SimulationRun
+        | project SimulationRun, FinancialCostOfStock
+        ) on $left.LastSimulationRun == $right.SimulationRun
+    )
+//      )
+//      | summarize FinancialCostOfStock = sum(FinancialCostOfStock) by SimulationRun
+//      | project SimulationRun, FinancialCostOfStock
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetLastSimulationRun(scenarioName:string) {
+    toscalar
+    (
+        GetScenarios
+        | where ScenarioName == scenarioName
+        | project LastSimulationRun
+    )
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetOtifForBottleneck() {
+    GetScenarios
+    | join kind=inner StockMeasures
+        on $left.LastSimulationRun == $right.SimulationRun
+    | where Demand > 0
+    | summarize 
+        MissedDemand = sum(UnservedQuantity),
+        OTIF = 1.0 * sum(ServedQuantity) / sum(Demand)
+      by
+        SimulationRun,
+        ScenarioName,
+        id
+    | lookup kind=leftouter
+        (
+            Stock
+            | project
+                SimulationRun,
+                id,
+                PartId,
+                MaximizationWeight
+        )
+      on
+        SimulationRun,
+        id
+    | project
+        ScenarioName,
+        SimulationRun,
+        Product=PartId,
+        MissedDemand,
+        OTIF,
+        ProductionMaximizationObjective = tobool(MaximizationWeight == 1)
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetPerformanceIndicators() {
+    GetScenarios
+    | project-rename
+        SimulationRun = LastSimulationRun
+    | join kind = inner
+        PerformanceIndicatorMeasures
+      on
+        SimulationRun
+    | where
+        RunTemplateId !in ("UncertaintyAnalysis", "StochasticOptimization")
+        or Uncertainty != false
+    | extend Income = Profit + OPEX
+    | summarize
+        take_any(ScenarioName),
+        take_any(SubDataset),
+        AverageStockValue = percentile(AverageStockValue, 50),
+        CO2Emissions = percentile(CO2Emissions, 50),
+        OPEX = percentile(OPEX, 50),
+        Profit = percentile(Profit, 50),
+        Income = percentile(Income, 50),
+        ServiceLevelIndicator = percentile(ServiceLevelIndicator, 50),
+        TotalDemand = percentile(TotalDemand, 50),
+        TotalServedOnTimeQuantity = percentile(TotalServedOnTimeQuantity, 50),
+        TotalServedQuantity = percentile(TotalServedQuantity, 50),
+        FinancialCostOfStock = percentile(FinancialCostOfStock, 50),
+        StorageCost = percentile(StorageCost, 50),
+        PurchasingCost = percentile(PurchasingCost, 50),
+        TransportCost = percentile(TransportCost, 50),
+        CustomsFees = percentile(CustomsFees, 50),
+        FixedProductionCost = percentile(FixedProductionCost, 50),
+        VariableProductionCost = percentile(VariableProductionCost, 50),
+        InvestmentCost = percentile(InvestmentCost, 50),
+        CO2EmissionsCost = percentile(CO2EmissionsCost, 50),
+        CycleServiceLevel = percentile(CycleServiceLevel, 50),
+        TotalMissedQuantity = percentile(TotalMissedQuantity, 50),
+        AverageWaitingTime = percentile(AverageWaitingTime, 50),
+        OnTimeFillRateServiceLevel = percentile(OnTimeFillRateServiceLevel, 50),
+        RemainingQuantityForSelection = percentile(RemainingQuantityForSelection, 50),
+        CoverageRateForSelection = percentile(CoverageRateForSelection, 50)
+      by SimulationRun
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetPerformanceIndicatorsWithUncertaintyAnalysis() {
+    GetScenarios
+    | where RunTemplateId in ("UncertaintyAnalysis", "StochasticOptimization")
+    | project
+        SimulationRun = LastSimulationRun,
+        ScenarioName
+    | join kind = inner
+        PerformanceIndicatorMeasures
+      on
+        SimulationRun
+    | where Uncertainty != false
+    | project-away
+        SimulationDate,
+        SimulationName,
+        SimulationRun1,
+        Uncertainty
+    | serialize Label = row_number()
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetProductionOperations() {
+    GetScenarios
+    | join kind=inner ProductionOperationMeasures on $left.LastSimulationRun == $right.SimulationRun
+    | project
+        ScenarioName,
+        SimulationRun,
+        TimeStep,
+        MeasureDate,
+        ProductionOperationId = id,
+        CO2Emissions,
+        CO2EmissionsCost,
+        MaximumCapacity,
+        MissedProduction,
+        ProducedQuantity,
+        ProductionPlan,
+        RunningTime,
+        WorkInProgress,
+        InvestmentCost,
+        VariableProductionCost,
+        FinancialCostOfStock,
+        OrderedQuantity,
+        UncompletedOrderedQuantity,
+        Value
+    | lookup (
+            ProductionOperation
+            | project
+            SimulationRun,
+            ProductionOperationId = id,
+            ProductionOperationLabel = Label,
+            IsContractor,
+            Priority,
+            Duration,
+            subdataset
+        )
+        on
+            SimulationRun,
+            ProductionOperationId
+    | lookup (
+        ['contains']
+        | project
+            SimulationRun,
+            ProductionOperationId = target,
+            ProductionResourceId = source
+        )
+        on
+            SimulationRun,
+            ProductionOperationId
+    | lookup (
+        ProductionResource
+            | project
+                SimulationRun,
+                ProductionResourceId = id,
+                ProductionResourceLabel = Label,
+                ProductionPlant = PlantName
+        )
+        on
+            SimulationRun,
+            ProductionResourceId
+    | lookup (
+        ['output']
+        | project
+            SimulationRun,
+            ProductionOperationId = source,
+            StockId = target
+        )
+        on
+            SimulationRun,
+            ProductionOperationId
+    | lookup (
+        Stock
+        | project
+            SimulationRun,
+            StockId = id,
+            PartId
+        )
+        on
+            SimulationRun,
+            StockId
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetProductionResources()
+{
+    let ProductionOperationMeasuresRunningTime =
+        GetScenarios
+        | join kind=inner
+            ProductionOperationMeasures
+            on
+                $left.LastSimulationRun == $right.SimulationRun
+        | project
+            SimulationRun,
+            ProductionOperationId = id,
+            TimeStep,
+            RunningTime
+        | lookup
+            (
+                ['contains']
+                | project
+                    SimulationRun,
+                    ProductionOperationId = target,
+                    ProductionResourceId = source
+            )
+            on
+                SimulationRun,
+                ProductionOperationId
+        | lookup (
+            ProductionResource
+                | project
+                    SimulationRun,
+                    ProductionResourceId = id,
+                    ProductionResourceLabel = Label,
+                    ProductionPlant = PlantName
+            )
+            on
+                SimulationRun,
+                ProductionResourceId
+        | summarize
+            RunningTime = sum(RunningTime)
+            by
+                SimulationRun,
+                ProductionResourceId,
+                TimeStep
+    ;
+    GetScenarios
+    | join kind=inner
+        ProductionResourceMeasures
+        on
+            $left.LastSimulationRun == $right.SimulationRun
+    | project
+        ScenarioName,
+        SimulationRun,
+        ProductionResourceId = id,
+        TimeStep,
+        MeasureDate,
+        FixedProductionCost,
+        OpeningTime,
+        UnusedTime = RunningTime
+    | lookup
+        (
+            ProductionResource
+            | project
+                SimulationRun,
+                ProductionResourceId = id,
+                ProductionResourceLabel = Label,
+                ProductionPlant = PlantName,
+                Latitude,
+                Longitude,
+                subdataset
+        )
+    on
+        SimulationRun,
+        ProductionResourceId
+    | lookup
+        ProductionOperationMeasuresRunningTime
+        on
+            SimulationRun,
+            ProductionResourceId,
+            TimeStep
+    | project
+        ScenarioName,
+        SimulationRun,
+        ProductionResourceId,
+        ProductionResourceLabel,
+        ProductionPlant,
+        Latitude,
+        Longitude,
+        subdataset,
+        TimeStep,
+        MeasureDate,
+        FixedProductionCost,
+        OpeningTime,
+        UnusedTime,
+        RunningTime
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetProductionResourceUtilizationForBottleneck(Scenario:string) {
+    let ProductionResourcesUtilization = materialize(
+    GetScenarios
+    | where ScenarioName == Scenario
+    | join kind=inner ProductionResourceMeasures on $left.LastSimulationRun == $right.SimulationRun
+    | project
+        ScenarioName,
+        SimulationRun,
+        MeasureDate,
+        TimeStep,
+        OpeningTime,
+        id
+    | lookup kind=leftouter
+        (
+            ProductionResource
+            | project
+                SimulationRun,
+                id,
+                Label,
+                ProductionStep
+        )
+      on
+        SimulationRun,
+        id
+    | join kind=leftouter
+        (
+            ['contains']
+            | project
+                SimulationRun,
+                source,
+                target
+        )
+      on
+        SimulationRun ,
+        $left.id == $right.source
+    | join kind=leftouter
+        (
+            ProductionOperationMeasures
+            | project
+                SimulationRun,
+                MeasureDate,
+                TimeStep,
+                RunningTime,
+                id
+        )
+      on
+        SimulationRun,
+        MeasureDate,
+        TimeStep,
+        $left.target == $right.id
+    | summarize
+        ProductionResourceOpeningTime= max(OpeningTime),
+        ProductionResourceRunningTime = sum(RunningTime)
+      by
+        ScenarioName,
+        SimulationRun,
+        id,
+        ProductionResourceName = Label,
+        ProductionStep,
+        MeasureDate,
+        TimeStep
+    | extend ProductionResourceUtilization  = (1.0 * (ProductionResourceRunningTime / ProductionResourceOpeningTime))
+    | join kind=leftouter
+        (
+            ProductionRoute
+            | project
+                SimulationRun,
+                ProductionResourceId,
+                StockId
+        )
+      on
+        SimulationRun,
+        $left.id == $right.ProductionResourceId
+    | lookup kind=leftouter
+        (
+            Stock
+            | project
+                SimulationRun,
+                id,
+                PartId
+        )
+      on
+        SimulationRun,
+        $left.StockId == $right.id
+    | project
+        ScenarioName,
+        SimulationRun,
+        ProductionStep,
+        ProductionResourceName,
+        MeasureDate,
+        TimeStep,
+        PartId,
+        ProductionResourceUtilization
+    );
+    let MinOrderByProductionStep = (
+        ProductionRoute
+        | project
+            SimulationRun,
+            ProductionResourceId,
+            ProductionStepOrder
+        | lookup kind=leftouter
+            (
+                ProductionResource
+                | project
+                    SimulationRun,
+                    id,
+                    ProductionStep
+            )
+          on
+            SimulationRun,
+            $left.ProductionResourceId == $right.id
+        | summarize
+            ProductionStepOrderMin = min(ProductionStepOrder)
+          by
+            SimulationRun,
+            ProductionStep
+    );
+    let TotalTimestep = (
+        ProductionResourcesUtilization
+        |summarize TotalTimesteps = dcount(MeasureDate) by SimulationRun
+    );
+    let BottlenecksByProduct = materialize(
+        ProductionResourcesUtilization
+        | summarize
+            MinUtilization = min(ProductionResourceUtilization)
+          by
+            SimulationRun,
+            PartId,
+            ProductionStep,
+            MeasureDate,
+            TimeStep
+    );
+    let BottleneckRatioByProduct = (
+        BottlenecksByProduct
+        | summarize
+            BottleneckNumber = countif(MinUtilization >= 0.999)
+          by
+            SimulationRun,
+            PartId,
+            ProductionStep
+        | lookup kind=inner TotalTimestep on SimulationRun
+        | project
+            SimulationRun,
+            PartId,
+            ProductionStep,
+            BottleneckRatio = 1.0 * BottleneckNumber / TotalTimesteps,
+            BottleneckNumber,
+            TotalTimesteps
+    );
+    ProductionResourcesUtilization
+    | lookup kind=inner
+        (
+            MinOrderByProductionStep
+            | project
+                ProductionStepOrderMin,
+                SimulationRun,
+                ProductionStep
+        )
+      on
+        SimulationRun,
+        ProductionStep
+    | project-rename ProductionStepOrder = ProductionStepOrderMin
+    | lookup kind=inner
+        (
+            BottlenecksByProduct
+            | project
+                SimulationRun,
+                PartId,
+                ProductionStep,
+                MeasureDate,
+                TimeStep,
+                MinUtilization
+        )
+      on
+        SimulationRun,
+        PartId,
+        ProductionStep,
+        MeasureDate,
+        TimeStep
+    | lookup kind=inner
+        (
+            BottleneckRatioByProduct
+            | project
+                SimulationRun,
+                PartId,
+                ProductionStep,
+                BottleneckRatio,
+                BottleneckNumber,
+                TotalTimesteps
+        )
+      on
+        SimulationRun,
+        PartId,
+        ProductionStep
+    | lookup kind=inner
+        (
+            GetOtifForBottleneck
+            |project
+                ScenarioName,
+                SimulationRun,
+                Product,
+                ProductionMaximizationObjective,
+                OTIF)
+      on
+        ScenarioName,
+        SimulationRun,
+        $left.PartId == $right.Product
+    | extend IsBottleneck = iff(MinUtilization >= 0.999 and (OTIF < 1 or ProductionMaximizationObjective == true), 1, 0)
+    | extend BottleneckRatio = iff(OTIF < 1 or ProductionMaximizationObjective == true, BottleneckRatio, 0.0)
+    | project
+        ScenarioName,
+        SimulationRun,
+        ProductionStepOrder,
+        ProductionStep,
+        ProductionResourceName,
+        MeasureDate,
+        TimeStep,
+        PartId,
+        ProductionResourceUtilization,
+        BottleneckRatio,
+        IsBottleneck
+}
+//
+// GetScenarios function to get the list of scenarios, with their latest name when renamed, and their lastest run
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetScenarios() {
+    ScenarioMetadata
+    | summarize arg_max(UpdateTime, *) by ScenarioId
+    | lookup kind=inner
+      (
+        ScenarioRunMetadata
+        | summarize arg_max(ScenarioRunStartTime, SimulationRun) by ScenarioId
+      )
+      on ScenarioId
+    | project-rename
+        LastSimulationRun = SimulationRun,
+        ScenarioName = Name,
+        RunTemplateId = RunTemplateName
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetStocksAtEndOfSimulation()
+{
+    StocksAtEndOfSimulationMeasures
+    | lookup
+        (
+            Demands
+            | summarize
+                StockHasDemand = iif(sum(Demands) > 0, true, false)
+                by
+                    SimulationRun,
+                    id
+        )
+        on
+            SimulationRun,
+            id
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetStocksAtEndOfSimulationUncertaintyStatistics()
+{
+    StocksAtEndOfSimulationUncertaintyStatistics
+    | lookup
+        (
+            Demands
+            | summarize
+                StockHasDemand = iif(sum(Demands) > 0, true, false)
+                by
+                    SimulationRun,
+                    id
+        )
+        on
+            SimulationRun,
+            id
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetStocks()
+{
+   GetScenarios
+    | join kind=inner
+        StockMeasures
+        on
+            $left.LastSimulationRun == $right.SimulationRun
+    | lookup
+        Stock
+        on
+            SimulationRun,
+            id
+    | lookup
+        (
+            StockMeasures
+            | summarize
+                DemandCoefficientVariation = stdev(Demand) / avg(Demand),
+                DemandAverage = avg(Demand),
+                StockHasDemand = iif(sum(Demand) > 0, true, false)
+                by SimulationRun, id
+            | where DemandAverage > 0
+        )
+        on
+            SimulationRun,
+            id
+    | lookup
+        (
+            StockSchedules
+            | project
+                SimulationRun,
+                id,
+                TimeStep = Timestep,
+                OrderPoints,
+                OrderQuantities,
+                OrderUpToLevels,
+                SafetyQuantities,
+                RetainProportions
+        )
+        on
+            SimulationRun,
+            id,
+            TimeStep
+    | lookup
+        (
+            SalesForecasts
+            | project
+                SimulationRun,
+                id,
+                TimeStep = Timestep,
+                SalesForecasts
+        )
+        on
+            SimulationRun,
+            id,
+            TimeStep
+    | lookup
+        (
+            ['input']
+            | project
+                SimulationRun,
+                id = source,
+                ProductionOperationId = target,
+                HasOutput = True
+            | lookup
+                (
+                    ProductionOperation
+                    | project
+                        SimulationRun,
+                        ProductionOperationId = id,
+                        IsContractor
+                )
+                on
+                    SimulationRun,
+                    ProductionOperationId
+            | distinct
+                SimulationRun,
+                id,
+                HasOutput,
+                IsContractor
+        )
+        on
+            SimulationRun,
+            id
+    | extend
+        HasOutput = coalesce(HasOutput, False)
+    | extend
+        IsContractor = coalesce(tobool(IsContractor), False)
+    | lookup
+        (
+            ['output']
+            | distinct SimulationRun, target
+            | project
+                SimulationRun,
+                id = target,
+                HasInput = True
+        )
+        on
+            SimulationRun,
+            id
+    | extend
+        HasInput = coalesce(HasInput, False)
+    | lookup
+        (
+            Transport
+            | distinct SimulationRun, target
+            | project
+                SimulationRun,
+                id = target,
+                HasIncomingTransport = True
+        )
+        on
+            SimulationRun,
+            id
+    | extend
+        HasIncomingTransport = coalesce(HasIncomingTransport, False)
+    | lookup
+        (
+            Transport
+            | distinct SimulationRun, source
+            | project
+                SimulationRun,
+                id = source,
+                HasOutgoingTransport = True
+        )
+        on
+            SimulationRun,
+            id
+    | extend
+        HasOutgoingTransport = coalesce(HasOutgoingTransport, False)
+    | lookup
+        (
+            OrderedQuantityMeasures
+            | summarize OrderedQuantity = sum(OrderedQuantity) by SimulationRun, Stock, TimeStep
+        )
+        on
+            SimulationRun,
+            $left.id == $right.Stock,
+            TimeStep
+    | project
+        ScenarioName,
+        SimulationRun,
+        id,
+        Label,
+        MeasureDate,
+        TimeStep,
+        StockLocationPlant = PlantName,
+        PartId,
+        Demand,
+        Step,
+        Backlog,
+        StartingQuantity,
+        ReceivedQuantity,
+        DispatchedQuantity,
+        AvailableQuantity,
+        ServedQuantity,
+        RemainingQuantity,
+        UnservedQuantity,
+        OrderedQuantity = iif(isnull(OrderedQuantity), 0.0, OrderedQuantity),
+        ObsoleteDestroyedQuantity,
+        IsContractor,
+        StockStatus = case
+            (
+                (not(HasInput or HasIncomingTransport) and not(HasOutput or HasOutgoingTransport)), "UNLINKED"
+                , (not(HasInput or HasIncomingTransport)), "RAW"
+                , (not(HasOutput or HasOutgoingTransport)), "FINALSTOCK"
+                , "WIP"
+            ),
+        StorageCost,
+        FinancialCostOfStock,
+        PurchasingCost,
+        CO2Emissions,
+        CO2EmissionsCost,
+        Income,
+        StockPolicy,
+        SourcingPolicy,
+        DispatchPolicy,
+        ReviewPeriod,
+        FirstReview,
+        Advance,
+        Latitude,
+        Longitude,
+        OrderPoints,
+        OrderQuantities,
+        OrderUpToLevels,
+        SafetyQuantities,
+        RetainProportions,
+        SalesForecasts,
+        DemandCoefficientVariation,
+        StockHasDemand,
+        Value,
+        OnTimeAndInLateFillRateServiceLevel,
+        IgnoreDownstreamRequiredQuantities,
+        SourcingLimit,
+        InitialBacklog,
+        CoverageHorizon,
+        CoverageOffset,
+        CoverageRate,
+        OrderForEndOfTimeStep,
+        subdataset,
+        OnTimeFillRateServiceLevel
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetStockUncertaintyStatisticsAllCategories()
+{
+    StockUncertaintyStatistics
+    | where Category == "Demand"
+    | project
+        SimulationRun,
+        TimeStep,
+        id,
+        DemandFirstVigintile=FirstVigintile,
+        DemandFirstQuartile=FirstQuartile,
+        DemandMedian=Median,
+        DemandLastQuartile=LastQuartile,
+        DemandLastVigintile=LastVigintile,
+        DemandMean=Mean,
+        DemandSE=SE
+    | lookup
+        (
+            StockUncertaintyStatistics
+            | where Category == "RemainingQuantity"
+            | project
+                SimulationRun,
+                TimeStep,
+                id,
+                RemainingQuantityFirstVigintile=FirstVigintile,
+                RemainingQuantityFirstQuartile=FirstQuartile,
+                RemainingQuantityMedian=Median,
+                RemainingQuantityLastQuartile=LastQuartile,
+                RemainingQuantityLastVigintile=LastVigintile,
+                RemainingQuantityMean=Mean,
+                RemainingQuantitySE=SE
+        )
+        on SimulationRun, TimeStep, id
+    | lookup
+        (
+            StockUncertaintyStatistics
+            | where Category == "ServedQuantity"
+            | project
+                SimulationRun,
+                TimeStep,
+                id,
+                ServedQuantityFirstVigintile=FirstVigintile,
+                ServedQuantityFirstQuartile=FirstQuartile,
+                ServedQuantityMedian=Median,
+                ServedQuantityLastQuartile=LastQuartile,
+                ServedQuantityLastVigintile=LastVigintile,
+                ServedQuantityMean=Mean,
+                ServedQuantitySE=SE
+        )
+        on SimulationRun, TimeStep, id
+    | lookup
+        (
+            StockUncertaintyStatistics
+            | where Category == "UnservedQuantity"
+            | project
+                SimulationRun,
+                TimeStep,
+                id,
+                UnservedQuantityFirstVigintile=FirstVigintile,
+                UnservedQuantityFirstQuartile=FirstQuartile,
+                UnservedQuantityMedian=Median,
+                UnservedQuantityLastQuartile=LastQuartile,
+                UnservedQuantityLastVigintile=LastVigintile,
+                UnservedQuantityMean=Mean,
+                UnservedQuantitySE=SE
+        )
+        on SimulationRun, TimeStep, id
+    | lookup
+        (
+            StockUncertaintyStatistics
+            | where Category == "OnTimeAndInLateFillRateServiceLevel"
+            | project
+                SimulationRun,
+                TimeStep,
+                id,
+                OnTimeAndInLateFillRateServiceLevelFirstVigintile=FirstVigintile,
+                OnTimeAndInLateFillRateServiceLevelFirstQuartile=FirstQuartile,
+                OnTimeAndInLateFillRateServiceLevelMedian=Median,
+                OnTimeAndInLateFillRateServiceLevelLastQuartile=LastQuartile,
+                OnTimeAndInLateFillRateServiceLevelLastVigintile=LastVigintile,
+                OnTimeAndInLateFillRateServiceLevelMean=Mean,
+                OnTimeAndInLateFillRateServiceLevelSE=SE
+        )
+        on SimulationRun, TimeStep, id
+    | lookup
+        (
+            StockUncertaintyStatistics
+            | where Category == "Value"
+            | project
+                SimulationRun,
+                TimeStep,
+                id,
+                ValueFirstVigintile=FirstVigintile,
+                ValueFirstQuartile=FirstQuartile,
+                ValueMedian=Median,
+                ValueLastQuartile=LastQuartile,
+                ValueLastVigintile=LastVigintile,
+                ValueMean=Mean,
+                ValueSE=SE
+        )
+        on SimulationRun, TimeStep, id
+    | lookup
+        (
+            StockUncertaintyStatistics
+            | where Category == "OnTimeFillRateServiceLevel"
+            | project
+                SimulationRun,
+                TimeStep,
+                id,
+                OnTimeFillRateServiceLevelFirstVigintile=FirstVigintile,
+                OnTimeFillRateServiceLevelFirstQuartile=FirstQuartile,
+                OnTimeFillRateServiceLevelMedian=Median,
+                OnTimeFillRateServiceLevelLastQuartile=LastQuartile,
+                OnTimeFillRateServiceLevelLastVigintile=LastVigintile,
+                OnTimeFillRateServiceLevelMean=Mean,
+                OnTimeFillRateServiceLevelSE=SE
+        )
+        on SimulationRun, TimeStep, id
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetStockUncertaintyStatistics() {
+    GetScenarios
+    | where RunTemplateId in ("UncertaintyAnalysis", "StochasticOptimization")
+    | project
+        SimulationRun = LastSimulationRun
+    | join kind = inner
+        StockUncertaintyStatistics
+      on
+        SimulationRun
+    | lookup
+      (
+        Demands
+        | summarize
+            StockHasDemand = iif(sum(Demands) > 0, true, false)
+          by
+            SimulationRun,
+            id
+      )
+      on
+        SimulationRun,
+        id
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetTransports()
+{
+    GetScenarios
+    | join kind=inner
+        TransportMeasures
+        on $left.LastSimulationRun == $right.SimulationRun
+    | lookup
+        Transport
+        on SimulationRun and $left.id == $right.Label  // TODO: replace Label by relationshipId PROD-7682
+    | lookup
+        (
+            Stock
+            | project
+                SimulationRun,
+                SourceStockId = id,
+                SourcePlant = PlantName,
+                PartId,
+                Step,
+                SourceLatitude = Latitude,
+                SourceLongitude = Longitude
+        )
+        on SimulationRun and $left.source == $right.SourceStockId
+    | lookup
+        (
+            Stock
+            | project
+                SimulationRun,
+                DestinationStockId = id,
+                DestinationPlant = PlantName,
+                DestinationLatitude = Latitude,
+                DestinationLongitude = Longitude
+        )
+        on SimulationRun and $left.target == $right.DestinationStockId
+    | project
+        ScenarioName,
+        SimulationRun,
+        id,
+        MeasureDate,
+        TimeStep,
+        SourcePlant,
+        DestinationPlant,
+        PartId,
+        Step,
+        Priority,
+        Mode,
+        subdataset,
+        FinancialCostOfStock,
+        TransportCost,
+        CustomFees = CustomsCost,
+        CO2Emissions,
+        CO2EmissionsCost,
+        OngoingDeliveryPart = TransportedQuantity,
+        OrderedQuantity,
+        LoadedQuantity,
+        UnloadedQuantity,
+        UncompletedOrderedQuantity,
+        Value,
+        Source = source,
+        SourceLatitude,
+        SourceLongitude,
+        Destination = target,
+        DestinationLatitude,
+        DestinationLongitude
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") GetTransportUncertaintyStatistics() {
+    GetScenarios
+    | where RunTemplateId in ("UncertaintyAnalysis", "StochasticOptimization")
+    | project
+        SimulationRun = LastSimulationRun
+    | join kind = inner
+      TransportUncertaintyStatistics
+      on SimulationRun
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateDispatchedQuantityMeasures() {
+    ProbesMeasures
+    | where ProbeType == "DispatchedQuantities"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        TimeStep = ProbeRun,
+        Stock = column_ifexists('Stock', ''),
+        Destination = column_ifexists('Destination', ''),
+        Type = column_ifexists('DestinationType', ''),
+        DispatchedQuantity = column_ifexists('DispatchedQuantity', real(null)),
+        UndispatchedQuantity = column_ifexists('UndispatchedQuantity', real(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateOrderedQuantityMeasures() {
+    ProbesMeasures
+    | where ProbeType == "OrderedQuantities"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        TimeStep = ProbeRun,
+        Stock = column_ifexists('Stock', ''),
+        Source = column_ifexists('Source', ''),
+        Type = column_ifexists('SourceType', ''),
+        DueDateTimeStep = column_ifexists('DueDateTimeStep', long(null)),
+        OrderedQuantity = column_ifexists('OrderedQuantity', real(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdatePerformanceIndicatorMeasures() {
+    ProbesMeasures
+    | where ProbeType == "PerformanceIndicators"
+    | mv-expand CommonRaw
+    | evaluate bag_unpack(CommonRaw)
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        AverageStockValue = column_ifexists('AverageStockValue', real(null)),
+        CO2Emissions = column_ifexists('CO2Emissions', real(null)),
+        OPEX = column_ifexists('OPEX', real(null)),
+        Profit = column_ifexists('Profit', real(null)),
+        ServiceLevelIndicator = column_ifexists('ServiceLevelIndicator', real(null)),
+        TotalDemand = column_ifexists('TotalDemand', real(null)),
+        TotalServedQuantity = column_ifexists('TotalServedQuantity', real(null)),
+        FinancialCostOfStock = column_ifexists('FinancialCostOfStock', real(null)),
+        StorageCost = column_ifexists('StorageCost', real(null)),
+        PurchasingCost = column_ifexists('PurchasingCost', real(null)),
+        TransportCost = column_ifexists('TransportCost', real(null)),
+        CustomsFees = column_ifexists('CustomsFees', real(null)),
+        FixedProductionCost = column_ifexists('FixedProductionCost', real(null)),
+        VariableProductionCost = column_ifexists('VariableProductionCost', real(null)),
+        InvestmentCost = column_ifexists('InvestmentCost', real(null)),
+        CO2EmissionsCost = column_ifexists('CO2EmissionsCost', real(null)),
+        CycleServiceLevel = column_ifexists('CycleServiceLevel', real(null)),
+        TotalMissedQuantity = column_ifexists('TotalMissedQuantity', real(null)),
+        AverageWaitingTime = column_ifexists('AverageWaitingTime', real(null)),
+        OnTimeFillRateServiceLevel = column_ifexists('OnTimeFillRateServiceLevel', real(null)),
+        RemainingQuantityForSelection = column_ifexists('RemainingQuantityForSelection', real(null)),
+        CoverageRateForSelection = column_ifexists('CoverageRateForSelection', real(null)),
+        SubDataset = column_ifexists('SubDataset', ''),
+        TotalServedOnTimeQuantity = column_ifexists('TotalServedOnTimeQuantity', real(null)),
+        Uncertainty = column_ifexists('Uncertainty', bool(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateProductionOperationMeasures() {
+    ProbesMeasures
+    | where ProbeType == "ProductionOperations"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        TimeStep = ProbeRun,
+        MeasureDate = SimulatedDate,
+        CO2Emissions = column_ifexists('CO2Emissions', real(null)),
+        FinancialCostOfStock = column_ifexists('FinancialCostOfStock', real(null)),
+        id = column_ifexists('id', ''),
+        MaximumCapacity = column_ifexists('MaximumCapacity', real(null)),
+        MissedProduction = column_ifexists('MissedProduction', real(null)),
+        OperatingPerformance = column_ifexists('OperatingPerformance', real(null)),
+        ProducedQuantity = column_ifexists('ProducedQuantity', real(null)),
+        ProductionPlan = column_ifexists('ProductionPlan', real(null)),
+        RunningTime = column_ifexists('RunningTime', real(null)),
+        VariableProductionCost = column_ifexists('VariableProductionCost', real(null)),
+        WorkInProgress = column_ifexists('WorkInProgress', real(null)),
+        InvestmentCost = column_ifexists('InvestmentCost', real(null)),
+        OrderedQuantity = column_ifexists('OrderedQuantity', real(null)),
+        UncompletedOrderedQuantity = column_ifexists('UncompletedOrderedQuantity', real(null)),
+        Value = column_ifexists('Value', real(null)),
+        CO2EmissionsCost = column_ifexists('CO2EmissionsCost', real(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateProductionResourceMeasures() {
+    ProbesMeasures
+    | where ProbeType == "ProductionResources"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        TimeStep = ProbeRun,
+        MeasureDate = SimulatedDate,
+        FixedProductionCost = column_ifexists('FixedProductionCost', real(null)),
+        id = column_ifexists('id', ''),
+        OpeningTime = column_ifexists('OpeningTime', real(null)),
+        RunningTime = column_ifexists('RunningTime', real(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateStockMeasures() {
+    ProbesMeasures
+    | where ProbeType == "Stocks"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        TimeStep = ProbeRun,
+        MeasureDate = SimulatedDate,
+        AvailableQuantity = column_ifexists('AvailableQuantity', real(null)),
+        Backlog = column_ifexists('Backlog', real(null)),
+        CO2Emissions = column_ifexists('CO2Emissions', real(null)),
+        Demand = column_ifexists('Demand', real(null)),
+        FinancialCostOfStock = column_ifexists('FinancialCostOfStock', real(null)),
+        id = column_ifexists('id', ''),
+        Income = column_ifexists('Income', real(null)),
+        ObsoleteDestroyedQuantity = column_ifexists('ObsoleteDestroyedQuantity', real(null)),
+        PurchasingCost = column_ifexists('PurchasingCost', real(null)),
+        ReceivedQuantity = column_ifexists('ReceivedQuantity', real(null)),
+        RemainingQuantity = column_ifexists('RemainingQuantity', real(null)),
+        ServedQuantity = column_ifexists('ServedQuantity', real(null)),
+        StorageCost = column_ifexists('StorageCost', real(null)),
+        UnservedQuantity = column_ifexists('UnservedQuantity', real(null)),
+        Value = column_ifexists('Value', real(null)),
+        CO2EmissionsCost = column_ifexists('CO2EmissionsCost', real(null)),
+        OnTimeAndInLateFillRateServiceLevel = column_ifexists('OnTimeAndInLateFillRateServiceLevel', real(null)),
+        StartingQuantity = column_ifexists('StartingQuantity', real(null)),
+        DispatchedQuantity = column_ifexists('DispatchedQuantity', real(null)),
+        OnTimeFillRateServiceLevel = column_ifexists('OnTimeFillRateServiceLevel', real(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateStocksAtEndOfSimulationMeasures() {
+    ProbesMeasures
+    | where ProbeType == "StocksAtEndOfSimulation"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        id = column_ifexists('id', ''),
+        OnTimeAndInLateFillRateServiceLevel = column_ifexists('OnTimeAndInLateFillRateServiceLevel', real(null)),
+        TotalDemand = column_ifexists('TotalDemand', real(null)),
+        TotalServedQuantity = column_ifexists('TotalServedQuantity', real(null)),
+        CycleServiceLevel = column_ifexists('CycleServiceLevel', real(null)),
+        OnTimeFillRateServiceLevel = column_ifexists('OnTimeFillRateServiceLevel', real(null))
+}
+//
+.create-or-alter function with (folder = "", docstring = "", skipvalidation = "true") UpdateTransportMeasures() {
+    ProbesMeasures
+    | where ProbeType == "Transports"
+    | mv-expand FactsRaw
+    | evaluate bag_unpack(FactsRaw)
+    | project
+        SimulationRun,
+        SimulationDate,
+        SimulationName,
+        TimeStep = ProbeRun,
+        MeasureDate = SimulatedDate,
+        CO2Emissions = column_ifexists('CO2Emissions', real(null)),
+        CustomsCost = column_ifexists('CustomsCost', real(null)),
+        FinancialCostOfStock = column_ifexists('FinancialCostOfStock', real(null)),
+        id = column_ifexists('id', ''),
+        TransportCost = column_ifexists('TransportCost', real(null)),
+        TransportedQuantity = column_ifexists('TransportedQuantity', real(null)),
+        OrderedQuantity = column_ifexists('OrderedQuantity', real(null)),
+        LoadedQuantity = column_ifexists('LoadedQuantity', real(null)),
+        UnloadedQuantity = column_ifexists('UnloadedQuantity', real(null)),
+        UncompletedOrderedQuantity = column_ifexists('UncompletedOrderedQuantity', real(null)),
+        Value = column_ifexists('Value', real(null)),
+        CO2EmissionsCost = column_ifexists('CO2EmissionsCost', real(null))
+}
+//
+.create-merge table InitialTransports (
+    ['SimulationRun']:string,
+    ['Label']:string,
+    ['Timestep']:long,
+    ['InitialTransportedQuantities']:real,
+    ['InitialTransportedValues']:real) 
+//
+.create-merge table input
+(
+    ['SimulationRun']:string,
+    ['source']:string,
+    ['target']:string,
+    ['InputQuantity']:real,
+    ['subdataset']:string
+)
+//
+.create-merge table inputSchedules
+(
+    ['SimulationRun']:string,
+    ['source']:string,
+    ['target']:string,
+    ['Timestep']:long,
+    ['DispatchProportions']:real
+)
+//
+.create-merge table LocalSensitivityAnalysis (
+    ['KPI']:string,
+    ['Group']:string,
+    ['id']:string,
+    ['ReferenceInputValue']:real,
+    ['NewInputValue']:real,
+    ['ReferenceKPI']:real,
+    ['NewKPI']:real,
+    ['Gap']:real,
+    ['RelativeChange']:real,
+    ['SF']:real,
+    ['SSF']:real,
+    ['SI']:real,
+    ['TimeStep']:long,
+    ['SimulationRun']:string,
+    ['Variable']:string,
+    ['Variation']:real,
+    ['Change']:string,
+    ['TimeInterval']:string,
+    ['InitialTimeStep']:long,
+    ['FinalTimeStep']:long,
+    ['SubDataset']:string
+)
+//
+.create-merge table OptDecisionVariableGroups
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['GroupTag']:string,
+    ['Attribute']:string,
+    ["GroupBehaviorMode"]: string,
+    ['DecisionVariableMinimum']:real,
+    ['DecisionVariableMaximum']:real,
+    ['DecisionVariableStartingPoint']:real,
+    ['subdataset']:string
+)
+//
+.create-merge table OptimizationConstraints
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['ConstrainedKpi']:string,
+    ['Statistic']:string,
+    ['ConstraintType']:string,
+    ['ConstraintValue']:real,
+    ['PenaltyCoefficient']:real
+)
+//
+.create-merge table OptimizationDecisionVariables
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['SelectedEntity']:string,
+    ['SelectedTag']:string,
+    ['Attribute']:string,
+    ['AttributeMinimumValue']:real,
+    ['AttributeMaximumValue']:real,
+    ['subdataset']:string
+)
+//
+.create-merge table OrderedQuantityMeasures
+(
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['TimeStep']:long,
+    ['Stock']:string,
+    ['Source']:string,
+    ['Type']:string,
+    ['DueDateTimeStep']:long,
+    ['OrderedQuantity']:real
+)
+//
+.create-merge table output
+(
+    ['SimulationRun']:string,
+    ['source']:string,
+    ['target']:string,
+    ['subdataset']:string
+)
+//
+.create-merge table PerformanceIndicatorMeasures (
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['AverageStockValue']:real,
+    ['CO2Emissions']:real,
+    ['OPEX']:real,
+    ['Profit']:real,
+    ['ServiceLevelIndicator']:real,
+    ['TotalDemand']:real,
+    ['TotalServedQuantity']:real,
+    ['FinancialCostOfStock']:real,
+    ['StorageCost']:real,
+    ['PurchasingCost']:real,
+    ['TransportCost']:real,
+    ['CustomsFees']:real,
+    ['FixedProductionCost']:real,
+    ['VariableProductionCost']:real,
+    ['InvestmentCost']:real,
+    ['CO2EmissionsCost']:real,
+    ['CycleServiceLevel']:real,
+    ['TotalMissedQuantity']:real,
+    ['AverageWaitingTime']:real,
+    ['OnTimeFillRateServiceLevel']:real,
+    ['RemainingQuantityForSelection']:real,
+    ['CoverageRateForSelection']:real,
+    ['SubDataset']:string,
+    ['TotalServedOnTimeQuantity']:real,
+    ['Uncertainty']:bool
+)
+//
+.create-merge table PerformanceIndicatorUncertaintyStatistics
+(
+    ['SimulationRun']:string,
+    ['Category']:string,
+    ['Percentile5']:real,
+    ['Percentile10']:real,
+    ['Percentile15']:real,
+    ['Percentile20']:real,
+    ['Percentile25']:real,
+    ['Percentile30']:real,
+    ['Percentile35']:real,
+    ['Percentile40']:real,
+    ['Percentile45']:real,
+    ['Percentile50']:real,
+    ['Percentile55']:real,
+    ['Percentile60']:real,
+    ['Percentile65']:real,
+    ['Percentile70']:real,
+    ['Percentile75']:real,
+    ['Percentile80']:real,
+    ['Percentile85']:real,
+    ['Percentile90']:real,
+    ['Percentile95']:real,
+    ['Mean']:real,
+    ['SE']:real,
+    ['STD']:real,
+    ['CI95']:string,
+    ['SubDataset']:string
+)
+//
+// retention must be set to at least 1 day in order that API can check the ingestion progress
+// the API verification compares the number of messages ingested in the table ProbeMeasure with the value of an indicator in the table SimulationTotalFacts
+.alter-merge table ProbesMeasures policy retention softdelete = 1d recoverability = disabled;
+//
+.create-merge table ProductionOperation
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Label']:string,
+    ['PlantName']:string,
+    ['IsContractor']:string,
+    ['InvestmentCost']:real,
+    ['Priority']:long,
+    ['Duration']:long,
+    ['subdataset']:string
+)
+//
+.create-merge table ProductionOperationMeasures
+(
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['TimeStep']:long,
+    ['MeasureDate']:datetime,
+    ['CO2Emissions']:real,
+    ['FinancialCostOfStock']:real,
+    ['id']:string,
+    ['MaximumCapacity']:real,
+    ['MissedProduction']:real,
+    ['OperatingPerformance']:real,
+    ['ProducedQuantity']:real,
+    ['ProductionPlan']:real,
+    ['RunningTime']:real,
+    ['VariableProductionCost']:real,
+    ['WorkInProgress']:real,
+    ['InvestmentCost']:real,
+    ['OrderedQuantity']:real,
+    ['UncompletedOrderedQuantity']:real,
+    ['Value']:real,
+    ['CO2EmissionsCost']:real
+)
+//
+.create-merge table ProductionOperationSchedules
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Timestep']:long,
+    ['QuantitiesToProduce']:real,
+    ['OperatingPerformances']:real,
+    ['CycleTimes']:real,
+    ['RejectRates']:real,
+    ['ProductionUnitCosts']:real,
+    ['CO2UnitEmissions']:real,
+    ['MinimumOrderQuantities']:real,
+    ['MultipleOrderQuantities']:real,
+    ['SourcingProportions']:real,
+    ['ProductionProportions']:real
+)
+//
+.create-merge table ProductionResource
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Label']:string,
+    ['PlantName']:string,
+    ['ProductionStep']:string,
+    ['ProductionPolicy']:string,
+    ['Latitude']:real,
+    ['Longitude']:real,
+    ['subdataset']:string
+)
+//
+.create-merge table ProductionResourceMeasures (
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['TimeStep']:long,
+    ['MeasureDate']:datetime,
+    ['FixedProductionCost']:real,
+    ['id']:string,
+    ['OpeningTime']:real,
+    ['RunningTime']:real) 
+//
+.create-merge table ProductionResourceSchedules
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Timestep']:long,
+    ['FixedProductionCosts']:real,
+    ['OpeningTimes']:real,
+    ['OpeningRates']:real
+)
+//
+.create-merge table ProductionRoute (
+    ['ProductionStepOrder']:long,
+    ['ProductionOperationId']:string,
+    ['ProductionResourceId']:string,
+    ['StockId']:string,
+    ['SimulationRun']:string) 
+//
+.create-merge table PurchasingCosts
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Timestep']:long,
+    ['Quantity']:long,
+    ['VariablePurchasingUnitCosts']:real
+)
+//
+.create-merge table SalesForecasts
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Timestep']:long,
+    ['SalesForecasts']:real
+)
+//
+.create-merge table StochasticOptimHistory (
+    ['ObjectiveValue']:real,
+    ['KPIValue']:real,
+    ['Iteration']:int,
+    ['KPI']:string,
+    ['Stat']:string,
+    ['optimization_mode']:string,
+    ['target_value']:real,
+    ['SimulationRun']:string,
+    ['SubDataset']:string
+)
+//
+.create-merge table StochasticOptimOptimalDecisionVariable (
+    ['Datapath']:string,
+    ['Value']:real,
+    ['Attribute']:string,
+    ['Entity']:string,
+    ['SimulationRun']:string,
+    ['SubDataset']:string
+)
+//
+.create-merge table StochasticOptimOptimalObjectiveFunction (
+    ['Objective']:real,
+    ['KPI']:real,
+    ['SimulationRun']:string,
+    ['SubDataset']:string
+)
+//
+.create-merge table Stock
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Label']:string,
+    ['PlantName']:string,
+    ['Step']:string,
+    ['PartId']:string,
+    ['MinimalStock']:real,
+    ['MaximalStock']:real,
+    ['InitialStock']:real,
+    ['InitialValue']:real,
+    ['IsInfinite']:string,
+    ['BacklogWeight']:real,
+    ['MaximizationWeight']:real,
+    ['StockPolicy']:string,
+    ['SourcingPolicy']:string,
+    ['DispatchPolicy']:string,
+    ['ReviewPeriod']:long,
+    ['FirstReview']:long,
+    ['Advance']:long,
+    ['Latitude']:real,
+    ['Longitude']:real,
+    ['IgnoreDownstreamRequiredQuantities']:string,
+    ['SourcingLimit']:string,
+    ['InitialBacklog']:real,
+    ['CoverageHorizon']:long,
+    ['CoverageOffset']:long,
+    ['CoverageRate']:real,
+    ['OrderForEndOfTimeStep']:string,
+    ['subdataset']:string
+)
+//
+.create-merge table StockMeasures
+(
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['TimeStep']:long,
+    ['MeasureDate']:datetime,
+    ['AvailableQuantity']:real,
+    ['Backlog']:real,
+    ['CO2Emissions']:real,
+    ['Demand']:real,
+    ['FinancialCostOfStock']:real,
+    ['id']:string,
+    ['Income']:real,
+    ['ObsoleteDestroyedQuantity']:real,
+    ['PurchasingCost']:real,
+    ['ReceivedQuantity']:real,
+    ['RemainingQuantity']:real,
+    ['ServedQuantity']:real,
+    ['StorageCost']:real,
+    ['UnservedQuantity']:real,
+    ['Value']:real,
+    ['CO2EmissionsCost']:real,
+    ['OnTimeAndInLateFillRateServiceLevel']:real,
+    ['StartingQuantity']:real,
+    ['DispatchedQuantity']:real,
+    ['OnTimeFillRateServiceLevel']:real
+)
+//
+.create-merge table StocksAtEndOfSimulationMeasures
+(
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['id']:string,
+    ['OnTimeAndInLateFillRateServiceLevel']:real,
+    ['TotalDemand']:real,
+    ['TotalServedQuantity']:real,
+    ['CycleServiceLevel']:real,
+    ['OnTimeFillRateServiceLevel']:real
+)
+//
+.create-merge table StocksAtEndOfSimulationUncertaintyStatistics
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Category']:string,
+    ['FirstVigintile']:real,
+    ['FirstQuartile']:real,
+    ['Median']:real,
+    ['LastQuartile']:real,
+    ['LastVigintile']:real,
+    ['Mean']:real,
+    ['SE']:real
+)
+//
+.create-merge table StockSchedules
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Timestep']:long,
+    ['StorageUnitCosts']:real,
+    ['OrderPoints']:real,
+    ['OrderQuantities']:real,
+    ['OrderUpToLevels']:real,
+    ['SafetyQuantities']:real,
+    ['PurchasingUnitCosts']:real,
+    ['CO2UnitEmissions']:real,
+    ['UnitIncomes']:real,
+    ['RetainProportions']:real
+)
+//
+.create-merge table StockUncertaintyStatistics
+(
+    ['SimulationRun']:string,
+    ['TimeStep']:long,
+    ['id']:string,
+    ['Category']:string,
+    ['FirstVigintile']:real,
+    ['FirstQuartile']:real,
+    ['Median']:real,
+    ['LastQuartile']:real,
+    ['LastVigintile']:real,
+    ['Mean']:real,
+    ['SE']:real
+)
+//
+.create-merge table ['TagGroups']
+(
+    ['SimulationRun']:string,
+    ['source']:string,
+    ['target']:string,
+    ['subdataset']:string
+)
+//
+.create-merge table ['Tags']
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['TagType']:string,
+    ['subdataset']:string
+)
+//
+.create-merge table Transport
+(
+    ['SimulationRun']:string,
+    ['Label']:string,
+    ['source']:string,
+    ['target']:string,
+    ['Duration']:long,
+    ['Priority']:long,
+    ['Mode']:string,
+    ['subdataset']:string
+)
+//
+.create-merge table TransportMeasures
+(
+    ['SimulationRun']:string,
+    ['SimulationDate']:datetime,
+    ['SimulationName']:string,
+    ['TimeStep']:long,
+    ['MeasureDate']:datetime,
+    ['CO2Emissions']:real,
+    ['CustomsCost']:real,
+    ['FinancialCostOfStock']:real,
+    ['id']:string,
+    ['TransportCost']:real,
+    ['TransportedQuantity']:real,
+    ['OrderedQuantity']:real,
+    ['LoadedQuantity']:real,
+    ['UnloadedQuantity']:real,
+    ['UncompletedOrderedQuantity']:real,
+    ['Value']:real,
+    ['CO2EmissionsCost']:real
+)
+//
+.create-merge table TransportSchedules
+(
+    ['SimulationRun']:string,
+    ['Label']:string,
+    ['Timestep']:long,
+    ['CustomFees']:real,
+    ['TransportUnitCosts']:real,
+    ['CO2UnitEmissions']:real,
+    ['ActualDurations']:long,
+    ['MinimumOrderQuantities']:real,
+    ['MultipleOrderQuantities']:real,
+    ['SourcingProportions']:real,
+    ['DispatchProportions']:real
+)
+//
+.create-merge table TransportUncertaintyStatistics
+(
+    ['SimulationRun']:string,
+    ['TimeStep']:long,
+    ['id']:string,
+    ['Category']:string,
+    ['FirstVigintile']:real,
+    ['FirstQuartile']:real,
+    ['Median']:real,
+    ['LastQuartile']:real,
+    ['LastVigintile']:real,
+    ['Mean']:real,
+    ['SE']:real
+)
+//
+.create-merge table Uncertainties
+(
+    ['SimulationRun']:string,
+    ['id']:string,
+    ['Entity']:string,
+    ['Attribute']:string,
+    ['TimeStep']:int,
+    ['UncertaintyMode']:string,
+    ['UncertaintyModel']:string,
+    ['Parameters']:string,
+    ['subdataset']:string
+)
+//
+.alter table DispatchedQuantityMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateDispatchedQuantityMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table OrderedQuantityMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateOrderedQuantityMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table PerformanceIndicatorMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdatePerformanceIndicatorMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table ProductionOperationMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateProductionOperationMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table ProductionResourceMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateProductionResourceMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table StockMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateStockMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table StocksAtEndOfSimulationMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateStocksAtEndOfSimulationMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
+//
+.alter table TransportMeasures policy update
+@'[{"IsEnabled": true, "Source": "ProbesMeasures", "Query": "UpdateTransportMeasures()", "IsTransactional": true, "PropagateIngestionProperties": true}]';
