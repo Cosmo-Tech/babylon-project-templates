@@ -1,9 +1,7 @@
 # Babylon deployment project templates
-> This README is intended to be followed step by step from top to bottom.
 
-**Prequisities:**
+Prequisities:
 - Have a working Cosmo Tech platform
-
 
 <br>
 
@@ -80,16 +78,16 @@ babylon apply --workspace --var-file variables.yaml project/
 ```
 
 **Update**
-> Some of the commands below are the same as the creation
-```
-babylon apply --organization --var-file variables.yaml project/
-```
-```
-babylon apply --webapp --var-file variables.yaml project/
-```
-```
-babylon apply --solution --var-file variables.yaml project/
-```
+> organization, webapp and solution are same commands as creation
+
+workspace
+- go to project/workspace.yaml > 'payload' section
+  - for each dashboadsView:
+    - comment `reportTag: <tag>`
+    - add `reportId: "{{services['powerbi.dashboard_view.<tag>']}}"`
+  - for each scenarioView:
+    - comment `reportTag: <tag>`
+    - add `reportId: "{{services['powerbi.scenario_view.<tag>']}}"`
 ```
 babylon apply --workspace --payload-only --var-file variables.yaml project/
 ```
